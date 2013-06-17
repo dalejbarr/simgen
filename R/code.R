@@ -1,3 +1,5 @@
+# Matrix, lme4, MASS
+
 .multicoreExists <- function() {
   return(is.element("multicore", installed.packages()[,1]))
 }
@@ -222,9 +224,6 @@ tryFit <- function(mf, xdat) {
          warning=w.handler),
        converged=converged)
 }
-
-
-
 
 ### FUNCTIONS ABOVE HAVEN'T BEEN UPDATED YET
 ### FUNCTIONS BELOW DON'T NEED UPDATING
