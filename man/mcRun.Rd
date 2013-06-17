@@ -1,16 +1,15 @@
 \name{mcRun}
 \alias{mcRun}
 \title{
-Monte Carlo Simulation on a Multicore Workstation
+Monte Carlo Simulation
 }
 \description{
-Function for running simulations on a multicore workstation, saving the
-result as a .CSV file.
+Run Monte Carlo simulations, taking advantage of multiple processing cores or a computing cluster
 }
 \usage{
-mcRun(mcr.FUN, mcr.outfile=tempfile(fileext=".csv"), mcr.xdatFnc=NULL, mcr.xdat=NULL,
+mcRun(mcr.FUN, mcr.cluster=NULL, mcr.outfile=tempfile(fileext=".csv"), mcr.xdatFnc=NULL, mcr.xdat=NULL,
 mcr.constant=NULL, mcr.varying=NULL, mcr.LoadOnExit=TRUE,
-mcr.nCores=NULL, mcr.reportInt=100, ...)
+mcr.reportInt=100, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -21,6 +20,11 @@ of \code{\link{fitanova}}, \code{\link{fitlmer}}, \code{\link{fitlmer.mcmc}},
 \code{\link{fitrsonly}}, or \code{\link{fitnocorr}}.  May also be a
 user-supplied function (see 'Details').
 }
+\item{mcr.cluster}{
+  A processing cluster object, typically created by a call to
+  \code{makeCluster} from the package \code{parallel}.  If NULL (default), just
+  uses a single processing core.
+  }
 \item{mcr.outfile}{
   name of file to which to write the output ("comma separated value"
   format).  Defaults to "out.csv".
@@ -47,11 +51,6 @@ user-supplied function (see 'Details').
     whether the data should be loaded from the file upon completion into
     an R object, and passed on as the return value from the function.
     }
-  \item{mcr.nCores}{
-    Number of processing cores to use.  Defaults to NULL, which will
-    query the system to determine its capacity, and then use all
-    available cores.
-  }
   \item{mcr.reportInt}{
     Interval at which to give status updates on progress (default =
     every 100 runs)
@@ -88,7 +87,11 @@ If mcr.LoadOnExit is true, loads the data from the CSV file and returns it to th
 \examples{
 pmx <- createParamMx(20, h0=TRUE)  # 20 experimental runs
 
-mx <- mcRun("fitanova",
+cl <- parallel:::makeCluster(1) # single core processing
+# if you have a multicore workstation, replace '1' with
+# the number of cores you want to use
+
+mx <- mcRun("fitanova", cl, 
 mcr.outfile="out.csv", # save to out.csv
 mcr.varying=pmx, # parameters that are varying
 mcr.xdatFnc="mkDf",  # data-generating function to call

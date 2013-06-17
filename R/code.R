@@ -95,7 +95,7 @@
   if (tot.mods < 2) {
     stop("need 2 or more models to be tested")
   } else {}
-  mfits <- lapply(mf, tryFit, xdat=xd)
+  mfits <- lapply(mf, tryFit.default, xdat=xd)
   cvg.ix <- (1:length(mfits))[unlist(lapply(mfits, function(x) {x$converged}))]
   mods <- lapply(mfits[cvg.ix], function(x) {x$value})
   if (length(mods) < 2) {
@@ -145,7 +145,7 @@
     } else {}    
   } else {}
   mf3 <- as.formula(paste(mf2[2], "~", mf2[3], "-Cond", sep=""))
-  if ( (mod2 <- tryFit(mf3, xd))$converged ) {
+  if ( (mod2 <- tryFit.default(mf3, xd))$converged ) {
     m1 <- mod2[["value"]]; m2 <- mod[[1]]
     mcmp <- anova(m1, m2)
     chi.obs <- mcmp$`Chisq`[2]
@@ -166,7 +166,7 @@
 
 .modInfo1 <- function(mf2, xd, mod) {
   mf3 <- as.formula(paste(mf2[2], "~", mf2[3], "-Cond", sep=""))
-  if ( (mod2 <- tryFit(mf3, xd))$converged ) {
+  if ( (mod2 <- tryFit.default(mf3, xd))$converged ) {
     m1 <- mod2[["value"]]; m2 <- mod[[1]]
     mcmp <- anova(m1, m2)
     chi.obs <- mcmp$`Chisq`[2]
@@ -212,17 +212,22 @@ modSpace <- function(wsbi) {
   return(mf)
 }
 
-tryFit <- function(mf, xdat) {
-  converged <- TRUE
-  w.handler <- function(w) {
-    converged <- FALSE
-    invokeRestart("muffleWarning")
-  }
-  list(value=withCallingHandlers(tryCatch(
-         lmer(mf, family=gaussian, data=xdat, na.action=na.omit, REML=FALSE),
-         error=function(e) e),
-         warning=w.handler),
-       converged=converged)
+tryFit <- function(tf.formula, tf.data, ...) {
+    converged <- TRUE
+    w.handler <- function(w) {
+        converged <- FALSE
+        invokeRestart("muffleWarning")
+    }
+    arg.list <- c(list(formula=tf.formula, data=tf.data), list(...))
+    list(value=withCallingHandlers(tryCatch(
+             do.call(lme4:::lmer, arg.list),
+             error=function(e) e),
+             warning=w.handler),
+         converged=converged)
+}
+
+tryFit.default <- function(mf, xdat) {
+    tryFit(mf, xdat, na.action=na.omit, REML=FALSE)
 }
 
 ### FUNCTIONS ABOVE HAVEN'T BEEN UPDATED YET
@@ -555,7 +560,7 @@ fitrsonly <- function(mcr.data, wsbi) {
   } else {
     mf <- Resp ~ Cond + (0 + Cond | SubjID) + (0 + Cond | ItemID)
   }
-  mod <- tryFit(mf, xd)
+  mod <- tryFit.default(mf, xd)
   return(.modInfo1(mf, xd, mod))
 }
 
@@ -566,7 +571,7 @@ fitnocorr <- function(mcr.data, wsbi=FALSE) {
   } else {
     mf <- Resp ~ Cond + (1 | SubjID) + (0 + Cond | SubjID) + (1 | ItemID) + (0 + Cond | ItemID)
   }
-  mod <- tryFit(mf, xd)
+  mod <- tryFit.default(mf, xd)
   return(.modInfo1(mf, xd, mod))
 }
 
@@ -579,7 +584,7 @@ fitnocorr.mcmc <- function(mcr.data, wsbi=FALSE, nmcmc=10000) {
   } else {
     mf <- Resp ~ Cond + (1 | SubjID) + (0 + Cond | SubjID) + (1 | ItemID) + (0 + Cond | ItemID)
   }
-  mod <- tryFit(mf, xd)
+  mod <- tryFit.default(mf, xd)
   if (mod$converged) {
     mcmc <- try(lme4::mcmcsamp(mod$value, n = nmcmc, silent=TRUE))
     mcmcfixef <- t(mcmc@fixef)
@@ -608,13 +613,13 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
   mf <- modSpace(FALSE)
   mf <- c(mf$min, mf$mid$srs, mf$mid$irs, mf$max)
   names(mf) <- c("min","srs","irs","max")
-  mods <- lapply(mf[c("srs","irs")], tryFit, xdat=xd)
+  mods <- lapply(mf[c("srs","irs")], tryFit.default, xdat=xd)
   if (forward) {
-    mods <- c(list(min=tryFit(mf[["min"]], xdat=xd)), mods)
+    mods <- c(list(min=tryFit.default(mf[["min"]], xdat=xd)), mods)
     cvg.lx <- unlist(lapply(mods, function(x) {x$converged}))
     if (sum(cvg.lx) < 3) { # at least one failed to converge
       if (sum(cvg.lx)==0) { # NONE converged
-        ff <- tryFit(mf[["max"]], xdat=xd)
+        ff <- tryFit.default(mf[["max"]], xdat=xd)
         if (ff$converged) {
           ff.inf <- .modInfo(list(max=ff$value), xd, wsbi=FALSE)
           return(c(matrix(apply(t(ff.inf), 1, rep, length(crit)), nrow=length(crit), byrow=TRUE)))
@@ -647,11 +652,11 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
       }
     }    
   } else { # backward model
-    mods <- c(list(max=tryFit(mf[["max"]], xdat=xd)), mods)
+    mods <- c(list(max=tryFit.default(mf[["max"]], xdat=xd)), mods)
     cvg.lx <- unlist(lapply(mods, function(x) {x$converged}))
     if (sum(cvg.lx) < 3) { # at least one failed to converge
       if (sum(cvg.lx)==0) { # NONE converged
-        ff <- tryFit(mf[["min"]], xdat=xd)
+        ff <- tryFit.default(mf[["min"]], xdat=xd)
         if (ff$converged) {
           ff.inf <- .modInfo(list(max=ff$value), xd, wsbi=FALSE)
           return(c(matrix(apply(t(ff.inf), 1, rep, 10), nrow=10, byrow=TRUE)))
@@ -694,6 +699,7 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
   return(unlist(gg))
 }
 
+
 mkDf <- function(nsubj=24,    # number of subjects
                   nitem=24,    # number of items
                   wsbi=FALSE,     # if design is between items (TRUE) or within (FALSE)
@@ -719,7 +725,7 @@ mkDf <- function(nsubj=24,    # number of subjects
     
   exp.list <- expand.grid(list(ItemID=factor(1:nitem), SubjID=factor(1:nsubj)))[,2:1]    
 
-  library(MASS, quietly=TRUE)
+  #library(MASS, quietly=TRUE)
   # assign condition variable and create item random-effects depending on design
   if (wsbi) {
     exp.list$Cond <- rep(c(-.5,.5),times=nitem/2)
@@ -729,13 +735,13 @@ mkDf <- function(nsubj=24,    # number of subjects
 
   # subject random effects
   subj <- cbind(SubjID=factor(1:nsubj),
-                mvrnorm(nsubj, mu=c(0,0),
+                MASS:::mvrnorm(nsubj, mu=c(0,0),
                         Sigma=mkSigma(mcr.params[["t00"]], mcr.params[["t11"]], mcr.params[["rsub"]])))
   colnames(subj) <- c("SubjID","ri.subj","rs.subj")
 
   # item random effects
   item <- cbind(ItemID=factor(1:nitem),
-                mvrnorm(nitem, mu=c(0,0),
+                MASS:::mvrnorm(nitem, mu=c(0,0),
                         Sigma=mkSigma(mcr.params[["w00"]], mcr.params[["w11"]], mcr.params[["ritm"]])) )
   colnames(item) <- c("ItemID","ri.item","rs.item")
 
@@ -827,6 +833,7 @@ mkDf <- function(nsubj=24,    # number of subjects
 }
 
 mcRun <- function(mcr.FUN,  # name of function to be applied
+                  mcr.cluster=NULL, # parallel cluster; NULL for single cluster
                    mcr.outfile=tempfile(fileext=".csv"), # name of text file to write to
                    mcr.xdatFnc=NULL,
                    mcr.xdat=NULL,
@@ -835,171 +842,320 @@ mcRun <- function(mcr.FUN,  # name of function to be applied
                    mcr.LoadOnExit=TRUE,
                    mcr.nCores=NULL,
                    mcr.reportInt=100,
-                   ...) { # user parameters
-
-  statusUpdate <- function(i, elapsed) {
-    fmtstr1 <- paste("%",nchar(as.character(nEpochs)),"d",
-                     sep="")
-    fmtstr1.2 <- paste("%", nchar(as.character(nrow(mcr.varying))),"d", sep="")
-    fmtstr2 <- paste(fmtstr1, "/", nEpochs, " (", fmtstr1.2,
-                     "/", nrow(mcr.varying),
-                     ") ", ":", sep="")
-    stmp1 <- sprintf(fmtstr2, i, ix.b[i], nrow(mcr.varying))
-
-    e2 <- elapsed[1:i]
-    efac <- mean(e2)
-    cat(stmp1, sprintf("%1.3fs/sweep, ", efac))
-    totsecs <- efac*(nEpochs-i)
-    cat(sprintf("%02dh:", floor(totsecs / 3600)))
-    if (totsecs >= 3600) {
-      remn <- totsecs %% 3600
-    } else {
-      remn <- totsecs
+                  ...) { # user parameters
+    statusUpdate <- function(i, elapsed) {
+        fmtstr1 <- paste("%",nchar(as.character(nEpochs)),"d",
+                         sep="")
+        fmtstr1.2 <- paste("%", nchar(as.character(nrow(mcr.varying))),"d", sep="")
+        fmtstr2 <- paste(fmtstr1, "/", nEpochs, " (", fmtstr1.2,
+                         "/", nrow(mcr.varying),
+                         ") ", ":", sep="")
+        stmp1 <- sprintf(fmtstr2, i, ix.b[i], nrow(mcr.varying))
+        
+        e2 <- elapsed[1:i]
+        efac <- mean(e2)
+        cat(stmp1, sprintf("%1.3fs/sweep, ", efac))
+        totsecs <- efac*(nEpochs-i)
+        cat(sprintf("%02dh:", floor(totsecs / 3600)))
+        if (totsecs >= 3600) {
+            remn <- totsecs %% 3600
+        } else {
+            remn <- totsecs
+        }
+        cat(sprintf("%02dm:", floor(remn/60)))
+        cat(sprintf("%02ds", round(remn %% 60)), "left\n")
+        flush.console()
     }
-    cat(sprintf("%02dm:", floor(remn/60)))
-    cat(sprintf("%02ds", round(remn %% 60)), "left\n")
-    flush.console()
-  }
 
-  # basic error checking
-  if (missing(mcr.FUN)) {
-    stop("need to supply 'FUN' argument to mcRun")
-  } else {}
-
-  if (is.function(mcr.FUN)) {
-    mcr.FUN <- as.character(substitute(mcr.FUN))
-  } else {}
-
-  fbDataArgument <- c("mcr.data") %in% names(formals(mcr.FUN)) # do we need to pass data to the function?
-  if (fbDataArgument && is.null(mcr.xdatFnc) && is.null(mcr.xdat)) {
-    stop("function '", mcr.FUN, "' needs data (has 'mcr.data' argument), but mcRun arguments 'mcr.xdat' and 'mcr.xdatFnc' were not defined!")
-  } else {}
-
-  if (!fbDataArgument && is.null(mcr.xdatFnc) && is.null(mcr.xdat)) {
-    warning("data arguments supplied to mcRun ('mcr.xdat' and/or 'mcr.xdatFnc'), but target function '", mcr.FUN, "' has no mcr.data argument defined!")
-  } else {}
-  
-  if (!is.null(mcr.xdatFnc) && !is.null(mcr.xdat)) {
-    stop("can only define one of 'xdatFnc' OR 'xdat', NOT both! (see ?mcRun for details)")
-  } else {}
-
-  if (is.function(mcr.xdatFnc)) {
-    mcr.xdatFnc <- as.character(substitute(mcr.xdatFnc))
-  } else {}
-
-  if (!is.null(mcr.constant)) {
-    if (!is.list(mcr.constant)) {
-      stop("mcr.constant must be a list")
+                                        # basic error checking
+    if (missing(mcr.FUN)) {
+        stop("need to supply 'FUN' argument to mcRun")
     } else {}
-  } else {}
-
-  if (.multicoreExists()) {
-    library(multicore, quietly=TRUE)
-    if (is.null(mcr.nCores)) {
-      mcr.nCores = multicore:::detectCores()
+    
+    if (is.function(mcr.FUN)) {
+        mcr.FUN <- as.character(substitute(mcr.FUN))
     } else {}
-  } else {
-    mcr.nCores = 1
-  }
+
+    fbDataArgument <- c("mcr.data") %in% names(formals(mcr.FUN)) # do we need to pass data to the function?
+    if (fbDataArgument && is.null(mcr.xdatFnc) && is.null(mcr.xdat)) {
+        stop("function '", mcr.FUN, "' needs data (has 'mcr.data' argument), but mcRun arguments 'mcr.xdat' and 'mcr.xdatFnc' were not defined!")
+    } else {}
+
+    if (!fbDataArgument && is.null(mcr.xdatFnc) && is.null(mcr.xdat)) {
+        warning("data arguments supplied to mcRun ('mcr.xdat' and/or 'mcr.xdatFnc'), but target function '", mcr.FUN, "' has no mcr.data argument defined!")
+    } else {}
   
-  # for 'varying' arguments that are matrices, make a data frame
-  if (is.matrix(mcr.varying)) {
-    mcr.varying <- as.data.frame(mcr.varying)
-  } else if (is.list(mcr.varying) && !is.data.frame(mcr.varying)) {
+    if (!is.null(mcr.xdatFnc) && !is.null(mcr.xdat)) {
+        stop("can only define one of 'xdatFnc' OR 'xdat', NOT both! (see ?mcRun for details)")
+    } else {}
+
+    if (is.function(mcr.xdatFnc)) {
+        mcr.xdatFnc <- as.character(substitute(mcr.xdatFnc))
+    } else {}
+
+    if (!is.null(mcr.constant)) {
+        if (!is.list(mcr.constant)) {
+            stop("mcr.constant must be a list")
+        } else {}
+    } else {}
+  
+    # for 'varying' arguments that are matrices, make a data frame
+    if (is.matrix(mcr.varying)) {
+        mcr.varying <- as.data.frame(mcr.varying)
+    } else if (is.list(mcr.varying) && !is.data.frame(mcr.varying)) {
     # for 'varying' arguments that are lists,
     # compile a data frame    
-    ff <- lapply(mcr.varying, function(x) {
-      if (is.list(x)) {
-        as.data.frame(x)
-      } else {
-        x
-      }
-    })
-    mcr.varying <- do.call("rbind", ff)
-  } else {}
+        ff <- lapply(mcr.varying, function(x) {
+            if (is.list(x)) {
+                as.data.frame(x)
+            } else {
+                x
+            }
+        })
+        mcr.varying <- do.call("rbind", ff)
+    } else {}
 
-  # prepare arguments for the data generation function
-  # if there is no function, create one that just returns mcr.xdat
-  if (!is.null(mcr.xdat)) {
-    .mcr.mkDat <- function() {return(mcr.xdat)}
-    mcr.xdatFnc <- ".mcr.mkDat"
-  } else {  # data generation function
-    dparams <- list(...)[intersect(names(formals(mcr.xdatFnc)), names(list(...)))]
-  }
-
-  # prepare arguments for the target function
-  fbParamArgument <- c("mcr.params") %in% names(formals(mcr.FUN)) # do we need to pass data to the function?
-  fparams <- list(...)[intersect(names(formals(mcr.FUN)), names(list(...)))]
-
-  # write the function that we will call repeatedly
-  .mcr.doOnce <- function(theseParams) {
-    if (fbDataArgument) { # create data if necessary
-      xdat <- do.call(mcr.xdatFnc, c(dparams, list(mcr.params=c(mcr.constant, theseParams))))
-      fparams2 <- c(fparams, list(mcr.data=xdat))
-    } else {
-      xdat <- NULL
-      fparams2 <- fparams
+    # prepare arguments for the data generation function
+    # if there is no function, create one that just returns mcr.xdat
+    if (!is.null(mcr.xdat)) {
+        .mcr.mkDat <- function() {return(mcr.xdat)}
+        mcr.xdatFnc <- ".mcr.mkDat"
+    } else {  # data generation function
+        dparams <- list(...)[intersect(names(formals(mcr.xdatFnc)), names(list(...)))]
     }
-    if (fbParamArgument) {
-      fparams3 <- c(fparams2, list(mcr.params=c(mcr.constant, theseParams)))
-    } else {
-      fparams3 <- fparams2
-    }
-    res <- do.call(mcr.FUN, fparams3)
-    return(res)
-  }
-  
-  # calculate how many epochs ("sweeps") to perform
-  fullEpochs <- floor(nrow(mcr.varying)/mcr.reportInt)
-  remainderEpochs <- ((nrow(mcr.varying) %% mcr.reportInt)>0)*1
-  nEpochs <- fullEpochs + remainderEpochs
-  ix.a <- (0:(nEpochs-1))*mcr.reportInt+1
-  ix.b <- ix.a + c(rep(mcr.reportInt, fullEpochs), rep(nrow(mcr.varying)%%mcr.reportInt, remainderEpochs))-1
-  
-  # set up the result matrix
-  ff <- .mcr.doOnce(as.list(mcr.varying[1,]))
-  mcr.colnames <- names(ff)
-  mcr.nelements <- length(ff)
-  mcr.orig <- ff
 
-  # open the file
-  mcr.con <- file(mcr.outfile, "w", blocking=FALSE)
-  cat(mcr.colnames, file=mcr.con, append=FALSE, sep=",")
-  cat("\n", append=TRUE, file=mcr.con)
-  elapsed <- rep(NA, nEpochs)
-  
-  # ready to go, start running
-  for (i in 1:nEpochs) {
-    elapsed[i] <-
-      system.time( {
-        todo <- split(mcr.varying[ix.a[i]:ix.b[i],], ix.a[i]:ix.b[i])
-        if (mcr.nCores > 1) {
-          ff <- mclapply(todo, .mcr.doOnce, mc.cores=mcr.nCores)
+    # prepare arguments for the target function
+    fbParamArgument <- c("mcr.params") %in% names(formals(mcr.FUN)) # do we need to pass data to the function?
+    fparams <- list(...)[intersect(names(formals(mcr.FUN)), names(list(...)))]
+
+    # write the function that we will call repeatedly
+    .mcr.doOnce <- function(theseParams) {
+        if (fbDataArgument) { # create data if necessary
+            xdat <- do.call(mcr.xdatFnc, c(dparams, list(mcr.params=c(mcr.constant, theseParams))))
+            fparams2 <- c(fparams, list(mcr.data=xdat))
         } else {
-          ff <- lapply(todo, .mcr.doOnce)
+            xdat <- NULL
+            fparams2 <- fparams
         }
-        for (ii in 1:length(ff)) {
-          cat(ff[[ii]], file=mcr.con, append=TRUE, sep=",")
-          cat("\n", file=mcr.con)
+        if (fbParamArgument) {
+            fparams3 <- c(fparams2, list(mcr.params=c(mcr.constant, theseParams)))
+        } else {
+            fparams3 <- fparams2
         }
-      })["elapsed"]
-    statusUpdate(i, elapsed)
-  }
-
-  close(mcr.con)
+        res <- do.call(mcr.FUN, fparams3)
+        return(res)
+    }
   
-  cat("total time (seconds): ", sum(elapsed), "\n")
+    # calculate how many epochs ("sweeps") to perform
+    fullEpochs <- floor(nrow(mcr.varying)/mcr.reportInt)
+    remainderEpochs <- ((nrow(mcr.varying) %% mcr.reportInt)>0)*1
+    nEpochs <- fullEpochs + remainderEpochs
+    ix.a <- (0:(nEpochs-1))*mcr.reportInt+1
+    ix.b <- ix.a + c(rep(mcr.reportInt, fullEpochs), rep(nrow(mcr.varying)%%mcr.reportInt, remainderEpochs))-1
+  
+    # set up the result matrix
+    ff <- .mcr.doOnce(as.list(mcr.varying[1,]))
+    mcr.colnames <- names(ff)
+    mcr.nelements <- length(ff)
+    mcr.orig <- ff
 
-  if (mcr.LoadOnExit) {
-    result <- read.csv(mcr.outfile, header=TRUE)
-    return(invisible(result))
-  } else {
-    return(NULL)
-  }
+    # open the file
+    mcr.con <- file(mcr.outfile, "w", blocking=FALSE)
+    if (length(mcr.colnames)==0) {
+        mcr.colnames <- paste("V", 1:mcr.nelements, sep="")
+    } else {}
+    cat(mcr.colnames, file=mcr.con, append=FALSE, sep=",")
+    cat("\n", append=TRUE, file=mcr.con)
+    elapsed <- rep(NA, nEpochs)
+
+    # export the data function to cluster
+    if (!is.null(mcr.cluster)) {
+        parallel:::clusterExport(cl, c(mcr.xdatFnc, mcr.FUN))
+    } else {}
+    
+    # ready to go, start running
+    for (i in 1:nEpochs) {
+        elapsed[i] <-
+            system.time( {
+                todo <- split(mcr.varying[ix.a[i]:ix.b[i],], ix.a[i]:ix.b[i])
+                if (!is.null(mcr.cluster)) {
+                    ff <- parallel:::parLapplyLB(mcr.cluster, todo, .mcr.doOnce)
+                                        # ff <- mclapply(todo, .mcr.doOnce, mc.cores=mcr.nCores)
+                } else {
+                    ff <- lapply(todo, .mcr.doOnce)
+                }
+                for (ii in 1:length(ff)) {
+                    cat(ff[[ii]], file=mcr.con, append=TRUE, sep=",")
+                    cat("\n", file=mcr.con)
+                }
+            })["elapsed"]
+        statusUpdate(i, elapsed)
+    }
+
+    close(mcr.con)
+  
+    cat("total time (seconds): ", sum(elapsed), "\n")
+
+    if (mcr.LoadOnExit) {
+        result <- read.csv(mcr.outfile, header=TRUE)
+        return(invisible(result))
+    } else {
+        return(NULL)
+    }
 }
 
 
 reassembleStepwiseFile <- function(fname) {
   mx <- read.csv(fname, header=TRUE)
   return(.reassembleStepwise(mx))
+}
+
+###########################################
+# adding mixed factorial designs
+# these were added for higher order designs
+
+defaultGenParamRanges <- function() {
+    list(
+        int=c(-3,3),       # range of intercept value, continuous simulations
+        eff=.8,            # set to 0 to test Type I error rate
+        err=c(0,3),         # range for error variance
+        miss=c(0,.05),     # proportion of missing data
+        pMin=0,                # lower bound on condition/cluster-level rate of  missing data
+        pMax=0.8,              # lower bound on condition/cluster-level rate of  missing data
+        t00=c(0, 3),         # tau_00 is the subject variance for the intercept
+        t11=c(0, 3),         # tau_11 is the subject variance for the slope
+        rsub=c(-.8, .8), # range of the by-subject intercept/slope correlation
+        w00=c(0, 3),         # by-item intercept variance
+        w11=c(0, 3),         # by-item slope variance
+        ritm=c(-.8, .8) # by-item intercept/slope correlation
+        )
+}
+
+defaultGenParamRanges.facMixedAB <- function() {
+    list(t_00=c(1,3), # random intercept variance
+         t_11=c(1,3), # random slope variance
+         r_10=c(-.9,.9), # random intercept/slope correlation
+         evar=3, # error variance
+         mu=list(c(-2,-1), c(1,2)),
+         A=list(c(-2,-1), c(1,2)),
+         B=list(c(-2,-1), c(1,2)),
+         AB=list(c(-2,-1), c(1,2)))
+}
+
+mkParamMx <- function(param.list, nmc=1000, firstseed=NULL) {
+    randSeed <- function(n=1) {
+                                        # seeds must all be unique!
+        seeds <- c()
+        nremaining <- n
+        nTries <- 1
+        nMaxTries <- 1000
+        while (nremaining & (nTries < nMaxTries)) {
+            seeds <- unique(c(seeds, round((.Machine$integer.max-1)*(runif(nremaining, min=0, max=1)),0)))
+            nremaining <- n-length(seeds)
+            nTries <- nTries + 1
+        }
+        if (nTries == nMaxTries) {
+            stop("couldn't create enough unique random seeds after 1000 tries!")
+        } else {}
+        return(seeds)
+    }
+    if ("seed" %in% names(param.list)) {
+        stop("cannot use 'seed' as the name of a generative parameter")
+    } else {}
+    
+    if (!is.null(firstseed)) {
+        set.seed(firstseed)
+    } else {}
+
+
+    ff <- lapply(names(param.list), function(nx) {
+        x <- param.list[[nx]]
+        if (is.list(x)) {
+            rge <- x[[sample(1:length(x),1)]] # randomly choose ranges with eq prob
+        } else {
+            rge <- x
+        }
+        if (length(rge)==1) {
+            res <- rep(rge, nmc)
+        } else {
+            res <- runif(nmc, rge[1], rge[2])
+        }
+    })
+    mx <- matrix(unlist(ff), nrow=nmc, dimnames=list(NULL, names(param.list)))
+    cbind(mx, seed=randSeed(nmc))
+}
+
+contr.deviation <- function(n) {
+    if (length(n)<=1L) {
+        if (is.numeric(n) && length(n) == 1L && n > 1L)
+            levels <- seq_len(n)
+        else stop("not enough degrees of freedom to define contrasts")
+    } else {}
+    apply(contr.treatment(n), 2, function(x) {x-mean(x)})
+}
+
+mkDf.facMixedAB <- function(mcr.params=mkParamMx(defaultGenParamRanges.facMixedAB(), 1)[1,],
+                            nsubj=24, nreps=2, deviationCoding=TRUE) {
+                                        # mcr.params is a vector of parameters for data generation
+  x <- mcr.params
+  if (!is.list(x)) {
+      x <- as.list(x)
+  } else {}
+  set.seed(x[["seed"]])  
+  library(MASS)
+  ranef <- mvrnorm(nsubj, mu=c(0,0),
+                   Sigma=matrix(c(x[["t_00"]], x[["r_10"]]*sqrt(x[["t_00"]])*sqrt(x[["t_11"]]),
+                     x[["r_10"]]*sqrt(x[["t_00"]])*sqrt(x[["t_11"]]), x[["t_11"]]), nrow=2))
+  srs <- rep(ranef[,2], each=2)*c(-.5,.5)
+  dat <- data.frame(SubjID=factor(rep(1:nsubj,each=2*nreps)),
+                    A=factor(rep(c("A1","A2"),each=2*nreps)),
+                    B=factor(rep(c("B1","B2"),each=nreps)))
+  if (deviationCoding) {
+      contrasts(dat$A) <- contr.deviation(levels(dat$A))
+      contrasts(dat$B) <- contr.deviation(levels(dat$B))
+  } else { # use whatever the default coding is (usually 'treatment')
+  }
+  dat$Y <- x[["mu"]] + # fixed intercept
+    rep(c(-x[["A"]],x[["A"]])/2, each=2*nreps) + # fixed effect of A
+    rep(c(-x[["B"]],x[["B"]])/2, each=nreps) +   # fixed effect of B
+    rep(c(x[["AB"]],-x[["AB"]],-x[["AB"]],x[["AB"]])/4, each=nreps) + # fixed interaction
+    rep(ranef[,1], each=2*nreps) + # random intercept
+    rep(srs, each=nreps) + # random slope
+    rnorm(nrow(dat), sd=sqrt(x[["evar"]])) # error variance
+  return(dat)
+}
+
+# fitlmer.facMixedAB()
+
+getLmer.pValue <- function(m1,m2) {
+    pval <- NA
+    if (m1$converged && m2$converged) {
+        chisq.val <- (-2*lme4::logLik(m1$value))-(-2*lme4::logLik(m2$value))
+        pval <- as.numeric(pchisq(abs(chisq.val), 1, lower.tail=FALSE))
+    } else {}
+    return(pval)
+}
+
+fitlmer.facMixedAB <- function(mcr.data) {
+    # models to fit
+    models <- list(noB1=Y~A*B+(1|SubjID),
+                   noB2=Y~A+B+(1|SubjID),
+                   max1=Y~A*B+(1+A*B|SubjID),
+                   max2=Y~A+B+(1+A*B|SubjID))
+    # with treatment coding
+    contrasts(mcr.data$A) <- contr.treatment(levels(mcr.data$A))
+    contrasts(mcr.data$B) <- contr.treatment(levels(mcr.data$B))
+    treat.mods <- lapply(models, tryFit, tf.data=mcr.data)
+    # with deviation coding
+    contrasts(mcr.data$A) <- contr.deviation(levels(mcr.data$A))
+    contrasts(mcr.data$B) <- contr.deviation(levels(mcr.data$B))
+    dev.mods <- lapply(models, tryFit, tf.data=mcr.data)
+    treat.noB.p <- getLmer.pValue(treat.mods$noB2, treat.mods$noB1)
+    treat.max.p <- getLmer.pValue(treat.mods$max2, treat.mods$max1)
+    dev.noB.p <- getLmer.pValue(dev.mods$noB2, dev.mods$noB1)
+    dev.max.p <- getLmer.pValue(dev.mods$max2, dev.mods$max1)
+    dat.aov <- summary(aov(Y~A*B + Error(SubjID/B), mcr.data))
+    return(c(noB.t=treat.noB.p, max.t=treat.max.p,
+                        noB.d=dev.noB.p, max.d=dev.max.p,
+                        aov=dat.aov[["Error: SubjID:B"]][[1]]$`Pr(>F)`[2]))
 }

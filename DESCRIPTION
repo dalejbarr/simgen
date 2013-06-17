@@ -5,8 +5,9 @@ Version: 1.6
 Date: 2013-06-17
 Author: Dale J. Barr
 Maintainer: Dale J. Barr <dalejbarr3@gmail.com>
-Depends: R (>=2.14.0)
+Depends: R (>= 2.14.0)
+Imports: parallel, lme4, MASS
 Description: R Code to accompany Barr, Levy, Scheepers, & Tily, "Keep It Maximal"
 License: GPL (>= 2)
-LazyLoad: yes
+LazyData: yes
 Packaged: 2012-06-23 10:18:19 UTC; daleb
