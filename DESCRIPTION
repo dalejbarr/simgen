@@ -1,0 +1,13 @@
+Package: simgen
+Type: Package
+Title: Monte Carlo Simulations of Simultaneous Generalization
+Version: 1.54
+Date: 2012-06-22
+Author: Dale J. Barr
+Maintainer: Dale J. Barr <dale.barr@glasgow.ac.uk>
+Depends: Matrix, lme4, MASS
+Suggests: multicore
+Description: R Code to accompany Barr, Levy, Scheepers, & Tily, "Keep It Maximal"
+License: GPL (>= 2)
+LazyLoad: yes
+Packaged: 2012-06-23 10:18:19 UTC; daleb
