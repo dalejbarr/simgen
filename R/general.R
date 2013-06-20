@@ -28,8 +28,9 @@
 #' @return %% ~Describe the value returned %% If it is a LIST, use
 #' 
 #' %% ...
-#' @returnItem value fitted model object from lmer
-#' @returnItem converged whether or not the model converged
+#' @return
+#' \item{value} fitted model object from lmer
+#' \item{converged} whether or not the model converged
 #' @seealso \code{\link{fitlmer}}, \code{\link{modSpace}}
 #' @examples
 #' 
@@ -84,6 +85,7 @@ psig <- function(x, alpha=.05) {
     return(res)
 }
 
+
 #' Proportion of runs achieving convergence
 #'
 #' @param x Vector or matrix where each row is a single run
@@ -115,6 +117,20 @@ pconv <- function(x) { # probability of convergence
 }
 
 
+#' Make random seeds for Monte Carlo runs
+#'
+#' Creates a vector of unique random seeds for reproducible generation of datasets.
+#'
+#' @param nmc Number of Monte Carlo runs (default 1000)
+#' 
+#' @param firstseed Seed for generating seeds (meta-seed?)
+#' 
+#' @return A vector of seeds up to .Machine$integer.max
+#' 
+#' @examples
+#'
+#' nmc <- 10
+#' pmx <- cbind(randParams(genParamRanges(), nmc, 1001), seed=mkSeeds(nmc, 1001))
 #' @export mkSeeds
 mkSeeds <- function(nmc=1000, firstseed=NULL) {
     randSeed <- function(n=1) {
@@ -140,6 +156,12 @@ mkSeeds <- function(nmc=1000, firstseed=NULL) {
 }
 
 
+#' Matrix for Deviation-Coded Predictors
+#'
+#' Return a matrix of deviation-coded predictors (analogous to
+#' \code{\link{contr.sum}}).
+#'
+#' @param n A vector of levels for a factor, or the number of levels.
 #' @export contr.deviation
 contr.deviation <- function(n) {
     if (length(n)<=1L) {
@@ -151,6 +173,25 @@ contr.deviation <- function(n) {
 }
 
 
+
+#' Get p-value from model comparison of lmer objects
+#'
+#' Derive p-value by comparing two models fitted by
+#' \code{\link{tryFit}}.
+#'
+#' @param m1 A model fitted by \code{\link{tryFit}}
+#' @param m2 A model fitted by \code{\link{tryFit}}
+#' @return A p-value or \code{NA} if either (or both) models did not converge
+#' @examples
+#' d1 <- mkDf()
+#' 
+#' m1 <- tryFit(Resp ~ Cond + (1 + Cond | SubjID) + (1 + Cond | ItemID), d1, REML=FALSE,
+#'               na.action=na.omit)
+#' m2 <- tryFit(Resp ~ (1 + Cond | SubjID) + (1 + Cond | ItemID), d1, REML=FALSE,
+#'               na.action=na.omit)
+#'
+#' getLmer.pValue(m1, m2)
+#' 
 #' @importFrom lme4 lmer
 #' @export getLmer.pValue
 getLmer.pValue <- function(m1,m2) {
@@ -162,7 +203,26 @@ getLmer.pValue <- function(m1,m2) {
     return(pval)
 }
 
-
+#' Fit mixed-models and obtain p-values from model comparison
+#'
+#' A set of model formula are fed to \code{lrCompare} as named
+#' elements in a list.  These models are fit using
+#' \code{\link{tryFit}}.  Models are compared as specified in the
+#' argument \code{lrc.modCompare} using LLR (likelihood-ratio) tests.
+#' This function is useful for performing multiple tests on relatively
+#' complex designs (e.g., all main effects and interactions in a
+#' factorial design).
+#'
+#' @param mcr.data Data to be analyzed
+#' @param lrc.mods List of (named) model formulae
+#' @param lrc.modCompare List of comparisons to perform (named)
+#' @param ... Arguments to be passed along to \code{\link{tryFit}}
+#' (and thus to \code{lmer}).
+#' @return A vector with the p-values from tests specified by
+#' \code{lrc.modCompare}. If a test could not be performed (e.g.,
+#' because one or both of the corresponding models did not converge),
+#' \code{NA} is returned.
+#' 
 #' @export lrCompare
 lrCompare <- function(mcr.data, lrc.mods, lrc.modCompare, ...) {
     extraArgs <- c(list(tf.data=mcr.data), list(...))
