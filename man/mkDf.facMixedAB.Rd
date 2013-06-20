@@ -1,0 +1,47 @@
+\name{mkDf.facMixedAB}
+\alias{mkDf.facMixedAB}
+\title{Generate simulated data from a two-way mixed factorial design}
+\usage{
+  mkDf.facMixedAB(mcr.params = randParams(genParamRanges.facMixedAB(), 1)[1, ],
+    nsubj = 24, nitem = NULL, nreps = NULL,
+    showRfx = FALSE)
+}
+\arguments{
+  \item{mcr.params}{Data-generating parameters}
+
+  \item{nsubj}{Number of subjects (must be a multiple of
+  4)}
+
+  \item{nitem}{Number of items (must be a multiple of 2, or
+  NULL if \code{nreps} is defined)}
+
+  \item{nreps}{Number of replicated observations per cell
+  per subject (must be NULL if \code{nitem} is defined)}
+
+  \item{showRfx}{Whether to show the random effects in the
+  output}
+}
+\value{
+  A data frame
+}
+\description{
+  Generates a data set corresponding to a 2-way fixed
+  factorial design.
+}
+\details{
+  If \code{nitem} is defined, then it will generate item
+  effects as well as subject effects.  If \code{nreps} is
+  defined, will generate subject effects only.
+}
+\examples{
+mkDf.facMixedAB(nitem=24)
+mkDf.facMixedAB(nreps=2)
+
+#'
+}
+\seealso{
+  \code{\link{genParamRanges.facMixedAB}},
+  \code{\link{randParams}},
+  \code{\link{mkParamMx.facMixedAB}}
+}
+

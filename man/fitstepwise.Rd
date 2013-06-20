@@ -32,17 +32,17 @@
   of crit) = 24 values in each row of the dataframe.  To
   assemble a dataframe of results from a file into a
   three-dimensional array, see
-  \code{\link{reassembleStepwiseFile}}. \item{fm} the model
+  \code{\link{reassembleStepwiseFile}}. \item{fm}{the model
   that was selected.  4 means that no model converged.  For
   forward stepping models, 3 = maximal model was selected;
   2 = model includes only first slope; 1 = model is random
   intercept only.  For backward stepping models, 1 =
   maximal model, 2 = model minus one slope, 3 = random
-  intercept model. \item{t} t-statistic for the treatment
-  effect \item{chi} chi-square statistic for the likelihood
-  ratio test (1 df) \item{pt} p-value for the t-statistic
-  (normal distribution) \item{pchi} p-value for the
-  chi-square statistic
+  intercept model.} \item{t}{t-statistic for the treatment
+  effect} \item{chi}{chi-square statistic for the
+  likelihood ratio test (1 df)} \item{pt}{p-value for the
+  t-statistic (normal distribution)} \item{pchi}{p-value
+  for the chi-square statistic}
 }
 \description{
   Analyzes data using \code{\link{lmer}}, using model

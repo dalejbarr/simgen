@@ -3,7 +3,7 @@
 \title{Make a dataframe with simulated data given a set of population parameters}
 \usage{
   mkDf(nsubj = 24, nitem = 24, wsbi = FALSE,
-    mcr.params = createParamMx(1, firstseed = sample(1:1e+06, 1))[1, ],
+    mcr.params = randParams(genParamRanges(), 1)[1, ],
     missMeth = "random", rigen = FALSE)
 }
 \arguments{
@@ -26,10 +26,10 @@
   model (default FALSE)}
 }
 \value{
-  A dataframe, with fields: \item{SubjID} a factor,
-  identifying subject number \item{ItemID} a factor,
-  identifying item number \item{Cond} treatment condition,
-  deviation coded (-.5, .5) \item{Resp} response variable
+  A dataframe, with fields: \item{SubjID}{a factor,
+  identifying subject number} \item{ItemID}{a factor,
+  identifying item number} \item{Cond}{treatment condition,
+  deviation coded (-.5, .5)} \item{Resp}{response variable}
 }
 \description{
   Generates data for a simulated experiment given

@@ -6,7 +6,19 @@
 }
 \value{
   A list containing ranges for the following parameters,
-  default values in parentheses:
+  default values in parentheses: \item{int}{intercept (-3
+  to 3)} \item{eff}{the effect of the IV (.8)}
+  \item{err}{error variance (1 to 3)}
+  \item{miss}{proportion missing data (0 to 5)}
+  \item{pMin}{lower bound on rate of missing data (0)}
+  \item{pMax}{upper bound on rate of missing data (.8)}
+  \item{t00}{by-subject intercept variance (0 to 3)}
+  \item{t11}{by-subject slope variance (0 to 3)}
+  \item{rsub}{by-subject random intercept/slope correlation
+  (-.8 to .8)} \item{w00}{by-item intercept variance (0 to
+  3)} \item{w11}{by-item slope variance (0 to 3)}
+  \item{ritm}{by-item random intercept/slope correlation
+  (-.8 to .8)}
 }
 \description{
   Generates parameter ranges for one-factor design.  These

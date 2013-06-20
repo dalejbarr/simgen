@@ -12,12 +12,12 @@
   within-items (FALSE).}
 }
 \value{
-  A vector, with: \item{F1} the by-subjects F value
-  \item{F2} the by-items F value \item{minF} the min F'
-  value \item{p1} the p-value associated with F1 \item{p2}
-  the p-value associated with F2 \item{pmf} the p-value
-  associated with min F' \item{pmax} the p-value associated
-  with F1+F2 ( =max(c(p1,p2)) )
+  A vector, with: \item{F1}{the by-subjects F value}
+  \item{F2}{the by-items F value} \item{minF}{the min F'
+  value} \item{p1}{the p-value associated with F1}
+  \item{p2}{the p-value associated with F2} \item{pmf}{the
+  p-value associated with min F'} \item{pmax}{the p-value
+  associated with F1+F2 ( =max(c(p1,p2)) )}
 }
 \description{
   Given a dataset \code{xd}, calculates F1, F2, F'min, and

@@ -26,16 +26,32 @@
   stored; if NULL (default), no data will be stored.}
 }
 \value{
-  A matrix, with the following columns: \item{int} (grand
-  mean) intercept \item{eff} treatment effect \item{err}
-  error variance \item{miss} proportion of response values
-  missing \item{t00} by-subject intercept variance
-  \item{t11} by-subject slope variance \item{rsub}
-  by-subject intercept/slope correlation \item{w00} by-item
-  intercept variance \item{w11} by-item slope variance
-  \item{ritm} by-item intercept/slope correlation
-  \item{seed} random number seed for creating the dataframe
-  (see \code{\link{mkDf}})
+  A matrix, with the following columns:
+
+  \item{int}{(grand mean) intercept}
+
+  \item{eff}{treatment effect}
+
+  \item{err}{error variance}
+
+  \item{miss}{proportion of response values missing}
+
+  \item{t00}{by-subject intercept variance}
+
+  \item{t11}{by-subject slope variance}
+
+  \item{rsub}{by-subject intercept/slope correlation}
+
+  \item{w00}{by-item intercept variance}
+
+  \item{w11}{by-item slope variance}
+
+  \item{ritm}{by-item intercept/slope correlation}
+
+  \item{seed}{random number seed for creating the dataframe
+  (see}
+
+  \code{\link{mkDf}})
 }
 \description{
   Create a matrix of population parameters for Monte Carlo

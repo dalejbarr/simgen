@@ -16,10 +16,10 @@
   of two three dimensional arrays if
   \code{\link{fitstepwise}} was used, one for forward and
   one for backward selection.  Each array has the following
-  dimensions: \item{run} the Monte Carlo run \item{crit}
-  the alpha level for selection \item{params} the resulting
-  values from individual calls to \code{fitstepwise} or
-  \code{fitstepwise.bestpath}
+  dimensions: \item{run}{the Monte Carlo run}
+  \item{crit}{the alpha level for selection}
+  \item{params}{the resulting values from individual calls
+  to} \code{fitstepwise} or \code{fitstepwise.bestpath}
 }
 \description{
   Convert file containing values from stepwise lmer models

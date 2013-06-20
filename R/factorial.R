@@ -4,18 +4,18 @@
 #' are used for generating datasets.
 #'
 #' @return A list containing ranges for the following parameters, default values in parentheses:
-#' @returnItem int intercept (-3 to 3)
-#' @returnItem eff the effect of the IV (.8)
-#' @returnItem err error variance (1 to 3)
-#' @returnItem miss proportion missing data (0 to 5)
-#' @returnItem pMin lower bound on rate of missing data (0)
-#' @returnItem pMax upper bound on rate of missing data (.8)
-#' @returnItem t00 by-subject intercept variance (0 to 3)
-#' @returnItem t11 by-subject slope variance (0 to 3)
-#' @returnItem rsub by-subject random intercept/slope correlation (-.8 to .8)
-#' @returnItem w00 by-item intercept variance (0 to 3)
-#' @returnItem w11 by-item slope variance (0 to 3)
-#' @returnItem ritm by-item random intercept/slope correlation (-.8 to .8)
+#' \item{int}{intercept (-3 to 3)}
+#' \item{eff}{the effect of the IV (.8)}
+#' \item{err}{error variance (1 to 3)}
+#' \item{miss}{proportion missing data (0 to 5)}
+#' \item{pMin}{lower bound on rate of missing data (0)}
+#' \item{pMax}{upper bound on rate of missing data (.8)}
+#' \item{t00}{by-subject intercept variance (0 to 3)}
+#' \item{t11}{by-subject slope variance (0 to 3)}
+#' \item{rsub}{by-subject random intercept/slope correlation (-.8 to .8)}
+#' \item{w00}{by-item intercept variance (0 to 3)}
+#' \item{w11}{by-item slope variance (0 to 3)}
+#' \item{ritm}{by-item random intercept/slope correlation (-.8 to .8)}
 #' @seealso \code{\link{genParamRanges.facMixedAB}}, \code{\link{randParams}}, \code{\link{mkDf}}
 #' 
 #' @export genParamRanges
@@ -36,6 +36,35 @@ genParamRanges <- function() {
         )
 }
 
+
+#' Data-generating parameter ranges
+#'
+#' Generates parameter ranges for two-way factorial design, with A
+#' between-subjects and B within-subjects, and A,B within-items.
+#' 
+#' @return A list containing ranges for the following parameters, default values in parentheses:
+#' 
+#' \item{t_00}{by-subject random intercept variance (1 to 3)}
+#' \item{t_11}{by-subject random slope variance (1 to 3)}
+#' \item{r_01}{by-subject random intercept/slope correlation (-.9,.9)}
+#' \item{evar}{error variance (fixed at 3)}
+#' \item{mu}{intercept}
+#' \item{A}{effect of A}
+#' \item{B}{effect of B}
+#' \item{AB}{effect of AB}
+#' \item{w_00}{by-item random intercept (1 to 3)}
+#' \item{w_11}{by-item random slope variance for A (1 to 3)}
+#' \item{w_22}{by-item random slope variance for B (1 to 3)}
+#' \item{w_33}{by-item random slope variance for AB (1 to 3)}
+#' \item{w_01}{by-item random intercept/A-slope variance (-.9,.9)}
+#' \item{w_02}{by-item random intercept/B-slope variance (-.9,.9)}
+#' \item{w_03}{by-item random intercept/AB-slope variance (-.9,.9)}
+#' \item{w_12}{by-item random A/B-slope variance (-.9,.9)}
+#' \item{w_13}{by-item random A/AB-slope variance (-.9,.9)}
+#' \item{w_23}{by-item random B/AB-slope variance (-.9,.9)}
+#' 
+#' @seealso \code{\link{genParamRanges.facMixedAB}}, \code{\link{randParams}}, \code{\link{mkDf}}
+#'
 #' @export genParamRanges.facMixedAB
 genParamRanges.facMixedAB <- function() {
     params1 <- list(t_00=c(1,3), # random intercept variance
@@ -59,6 +88,15 @@ genParamRanges.facMixedAB <- function() {
     c(params1, params2)
 }
 
+#' Make matrix of data-generating parameters for mixed factorial design
+#'
+#' @param param.list list of DGP ranges (e.g., from \code{\link{genParamRanges.facMixedAB}})
+#' @param nmc number of populations to generate
+#' @param firstseed random number seed to use before generating populations
+#' @return A matrix, each row of which corresponds to parameters for a single population
+#' @seealso \code{\link{genParamRanges.facMixedAB}}, \code{\link{mkDf.facMixedAB}}
+#' @examples
+#' mkParamMx.facMixedAB(genParamRanges.facMixedAB(), 10)
 #' @export mkParamMx.facMixedAB
 mkParamMx.facMixedAB <- function(param.list, nmc=1000, firstseed=NULL) {
     if (!is.null(firstseed)) {
@@ -77,51 +115,27 @@ mkParamMx.facMixedAB <- function(param.list, nmc=1000, firstseed=NULL) {
     cbind(mx, item.mx, seed=seed.mx)
 }
 
-
-#' @export fitlmer.facMixedAB
-fitlmer.facMixedAB <- function(mcr.data, treat=TRUE, items=FALSE) {
-    # models to fit
-    if (!items) {
-        models <- list(noB1=Y~A*B+(1|SubjID),
-                       noB2=Y~A+B+(1|SubjID),
-                       max1=Y~A*B+(1+B|SubjID),
-                       max2=Y~A+B+(1+B|SubjID))
-    } else {
-        models <- list(noB1=Y~A*B+(1|SubjID)+(1|ItemID),
-                       noB2=Y~A+B+(1|SubjID),
-                       max1=Y~A*B+(1+B|SubjID),
-                       max2=Y~A+B+(1+B|SubjID))
-    }
-    modCompare <- list(noB.t=list("noB1","noB2"), max.t=list("max1","max2"))
-    # with treatment coding
-    if (treat) {
-        contrasts(mcr.data$A) <- contr.treatment(levels(mcr.data$A))
-        contrasts(mcr.data$B) <- contr.treatment(levels(mcr.data$B))
-        treat.p <- unlist(lrCompare(mcr.data, models, modCompare,
-                                    REML=FALSE, na.option=na.omit))
-        names(treat.p) <- names(modCompare)
-    } else {}
-    # with deviation coding
-    contrasts(mcr.data$A) <- contr.deviation(levels(mcr.data$A))
-    contrasts(mcr.data$B) <- contr.deviation(levels(mcr.data$B))
-    names(modCompare) <- c("noB.d", "max.d")
-    dev.p <- unlist(lrCompare(mcr.data, models, modCompare,
-                              REML=FALSE, na.option=na.omit))
-    names(dev.p) <- names(modCompare)
-    dat.aov <- summary(aov(Y~A*B + Error(SubjID/B), mcr.data))
-    if (treat) {
-        res <- c(treat.p, dev.p,
-                 aov=dat.aov[["Error: SubjID:B"]][[1]]$`Pr(>F)`[2])
-    } else {
-        res <- c(dev.p,
-                 aov=dat.aov[["Error: SubjID:B"]][[1]]$`Pr(>F)`[2])
-    }
-    return(res)
-}
-
-
-#' @export mkDf.facMixedAB
-mkDf.facMixedAB <- function(mcr.params=mkParamMx(defaultGenParamRanges.facMixedAB(), 1)[1,],
+#' Generate simulated data from a two-way mixed factorial design
+#'
+#' Generates a data set corresponding to a 2-way fixed factorial design.
+#'
+#' If \code{nitem} is defined, then it will generate item effects as
+#' well as subject effects.  If \code{nreps} is defined, will generate
+#' subject effects only.
+#'
+#' @param mcr.params Data-generating parameters
+#' @param nsubj Number of subjects (must be a multiple of 4)
+#' @param nitem Number of items (must be a multiple of 2, or NULL if \code{nreps} is defined)
+#' @param nreps Number of replicated observations per cell per subject (must be NULL if \code{nitem} is defined)
+#' @param showRfx Whether to show the random effects in the output
+#' @return A data frame
+#' @seealso \code{\link{genParamRanges.facMixedAB}}, \code{\link{randParams}}, \code{\link{mkParamMx.facMixedAB}}
+#' @examples
+#' mkDf.facMixedAB(nitem=24)
+#' mkDf.facMixedAB(nreps=2)
+#' 
+#' #' @export mkDf.facMixedAB
+mkDf.facMixedAB <- function(mcr.params=randParams(genParamRanges.facMixedAB(), 1)[1,],
                             nsubj=24, nitem=NULL, nreps=NULL, showRfx=FALSE) {
     if (is.null(nitem) && is.null(nreps)) {
         stop("need to define either 'nitem' or 'nreps' argument. see ?mkDf.facMixedAB")

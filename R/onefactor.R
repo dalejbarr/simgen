@@ -234,18 +234,30 @@
 #' @param h0 Status of the null hypothesis: TRUE or FALSE.
 #' @param outfile Name of a file where the matrix will be stored; if NULL
 #' (default), no data will be stored.
-#' @return A matrix, with the following columns: 
-#' \item{int} (grand mean) intercept
-#' \item{eff} treatment effect
-#' \item{err} error variance
-#' \item{miss} proportion of response values missing
-#' \item{t00} by-subject intercept variance
-#' \item{t11} by-subject slope variance
-#' \item{rsub} by-subject intercept/slope correlation
-#' \item{w00} by-item intercept variance
-#' \item{w11} by-item slope variance
-#' \item{ritm} by-item intercept/slope correlation
-#' \item{seed} random number seed for creating the dataframe (see
+#' @return A matrix, with the following columns:
+#' 
+#' \item{int}{(grand mean) intercept}
+#' 
+#' \item{eff}{treatment effect}
+#' 
+#' \item{err}{error variance}
+#' 
+#' \item{miss}{proportion of response values missing}
+#' 
+#' \item{t00}{by-subject intercept variance}
+#' 
+#' \item{t11}{by-subject slope variance}
+#' 
+#' \item{rsub}{by-subject intercept/slope correlation}
+#' 
+#' \item{w00}{by-item intercept variance}
+#' 
+#' \item{w11}{by-item slope variance}
+#' 
+#' \item{ritm}{by-item intercept/slope correlation}
+#' 
+#' \item{seed}{random number seed for creating the dataframe (see}
+#' 
 #' \code{\link{mkDf}})
 #' @seealso \code{\link{getParamRanges}}, \code{\link{mkDf}}
 #' @examples
@@ -329,23 +341,23 @@ createParamMx <- function(nexp=100000,    # no. of simulated experiments for whi
 #' be modified by the user.
 #' 
 #' @return An environment object, containing the following variables:
-#' \item{evar.range} range of error variance (default [0,3])
-#' \item{icept.range} range of intercept (default [-3, 3])
-#' \item{pmissing.range} range of proportion missing obs (default [0,
-#' .05])
-#' \item{r01.item.range} range of by-subject intercept/slope correlation
-#' (default [-.8, .8])
-#' \item{r01.subj.range} range of by-item intercept/slope correlation
-#' (default [-.8, .8])
-#' \item{slope} treatment effect, when h0 TRUE, 0; when h0 FALSE, .8
-#' \item{t00.range} range of by-subject random intercept variance (default
-#' [0, 3]
-#' \item{t11.range} range of by-subject random slope variance (default [0,
-#' 3])
-#' \item{w00.range} range of by-item random intercept variance (default
-#' [0, 3])
-#' \item{w11.range} range of by-item random slope variance (default [0,
-#' 3])
+#' \item{evar.range}{range of error variance (default [0,3])}
+#' \item{icept.range}{range of intercept (default [-3, 3])}
+#' \item{pmissing.range}{range of proportion missing obs (default [0,
+#' .05])}
+#' \item{r01.item.range}{range of by-subject intercept/slope correlation
+#' (default [-.8, .8])}
+#' \item{r01.subj.range}{range of by-item intercept/slope correlation
+#' (default [-.8, .8])}
+#' \item{slope}{treatment effect, when h0 TRUE, 0; when h0 FALSE, .8}
+#' \item{t00.range}{range of by-subject random intercept variance (default
+#' [0, 3]}
+#' \item{t11.range}{range of by-subject random slope variance (default [0,
+#' 3])}
+#' \item{w00.range}{range of by-item random intercept variance (default
+#' [0, 3])}
+#' \item{w11.range}{range of by-item random slope variance (default [0,
+#' 3])}
 #' @seealso \code{\link{createParamMx}}
 #' @examples
 #' 
@@ -388,13 +400,13 @@ getParamRanges <- function() {
 #' @param wsbi Whether the design is between-items (TRUE) or within-items
 #' (FALSE).
 #' @return A vector, with:
-#' \item{F1} the by-subjects F value
-#' \item{F2} the by-items F value
-#' \item{minF} the min F' value
-#' \item{p1} the p-value associated with F1
-#' \item{p2} the p-value associated with F2
-#' \item{pmf} the p-value associated with min F'
-#' \item{pmax} the p-value associated with F1+F2 ( =max(c(p1,p2)) )
+#' \item{F1}{the by-subjects F value}
+#' \item{F2}{the by-items F value}
+#' \item{minF}{the min F' value}
+#' \item{p1}{the p-value associated with F1}
+#' \item{p2}{the p-value associated with F2}
+#' \item{pmf}{the p-value associated with min F'}
+#' \item{pmax}{the p-value associated with F1+F2 ( =max(c(p1,p2)) )}
 #' @seealso \code{\link{mkDf}}
 #' @examples
 #' 
@@ -512,13 +524,13 @@ fitlmer.mcmc <- function(mcr.data, wsbi, nmcmc=10000) {
 #' @param wsbi Whether the design is between-items (TRUE) or within-items
 #' (FALSE).
 #' @return A vector with elements:
-#' \item{fm} Code for the model that converged: (1) dropped one slope; (2)
+#' \item{fm}{Code for the model that converged: (1) dropped one slope; (2)
 #' dropped two slopes; (3) main model did not converge; (4) comparision model
-#' for likelihood ratio test did not converge.
-#' \item{t} t-statistic for the treatment effect
-#' \item{chi} chi-square statistic for the likelihood ratio test (1 df)
-#' \item{pt} p-value for the t-statistic (normal distribution)
-#' \item{pchi} p-value for the chi-square statistic
+#' for likelihood ratio test did not converge.}
+#' \item{t}{t-statistic for the treatment effect}
+#' \item{chi}{chi-square statistic for the likelihood ratio test (1 df)}
+#' \item{pt}{p-value for the t-statistic (normal distribution)}
+#' \item{pchi}{p-value for the chi-square statistic}
 #' @seealso \code{\link{mkDf}}, \code{\link{fitlmer.mcmc}}
 #' @examples
 #' 
@@ -657,13 +669,13 @@ fitlmer <- function(mcr.data, ri.only=FALSE, wsbi=FALSE) {
 #' @param wsbi Whether the design is between-items (TRUE) or within-items
 #' (FALSE).
 #' @return A vector with elements:
-#' \item{fm} Code for the model that converged: (1) dropped one slope; (2)
+#' \item{fm}{Code for the model that converged: (1) dropped one slope; (2)
 #' dropped two slopes; (3) main model did not converge; (4) comparision model
-#' for likelihood ratio test did not converge.
-#' \item{t} t-statistic for the treatment effect
-#' \item{chi} chi-square statistic for the likelihood ratio test (1 df)
-#' \item{pt} p-value for the t-statistic (normal distribution)
-#' \item{pchi} p-value for the chi-square statistic
+#' for likelihood ratio test did not converge.}
+#' \item{t}{t-statistic for the treatment effect}
+#' \item{chi}{chi-square statistic for the likelihood ratio test (1 df)}
+#' \item{pt}{p-value for the t-statistic (normal distribution)}
+#' \item{pchi}{p-value for the chi-square statistic}
 #' @seealso \code{\link{mkDf}}, \code{\link{fitlmer.mcmc}}
 #' @examples
 #' 
@@ -704,13 +716,13 @@ fitrsonly <- function(mcr.data, wsbi) {
 #' @param wsbi Whether the design is between-items (TRUE) or within-items
 #' (FALSE).
 #' @return A vector with elements:
-#' \item{fm} Code for the model that converged: (1) dropped one slope; (2)
+#' \item{fm}{Code for the model that converged: (1) dropped one slope; (2)
 #' dropped two slopes; (3) main model did not converge; (4) comparision model
-#' for likelihood ratio test did not converge.
-#' \item{t} t-statistic for the treatment effect
-#' \item{chi} chi-square statistic for the likelihood ratio test (1 df)
-#' \item{pt} p-value for the t-statistic (normal distribution)
-#' \item{pchi} p-value for the chi-square statistic
+#' for likelihood ratio test did not converge.}
+#' \item{t}{t-statistic for the treatment effect}
+#' \item{chi}{chi-square statistic for the likelihood ratio test (1 df)}
+#' \item{pt}{p-value for the t-statistic (normal distribution)}
+#' \item{pchi}{p-value for the chi-square statistic}
 #' @seealso \code{\link{mkDf}}, \code{\link{fitlmer.mcmc}}
 #' @examples
 #' 
@@ -821,15 +833,15 @@ fitnocorr.mcmc <- function(mcr.data, wsbi=FALSE, nmcmc=10000) {
 #' (value) x 2 (levels of crit) = 24 values in each row of the dataframe.  To
 #' assemble a dataframe of results from a file into a three-dimensional array,
 #' see \code{\link{reassembleStepwiseFile}}.
-#' \item{fm} the model that was selected.  4 means that no model
+#' \item{fm}{the model that was selected.  4 means that no model
 #' converged.  For forward stepping models, 3 = maximal model was selected; 2 =
 #' model includes only first slope; 1 = model is random intercept only.  For
 #' backward stepping models, 1 = maximal model, 2 = model minus one slope, 3 =
-#' random intercept model.
-#' \item{t} t-statistic for the treatment effect
-#' \item{chi} chi-square statistic for the likelihood ratio test (1 df)
-#' \item{pt} p-value for the t-statistic (normal distribution)
-#' \item{pchi} p-value for the chi-square statistic
+#' random intercept model.}
+#' \item{t}{t-statistic for the treatment effect}
+#' \item{chi}{chi-square statistic for the likelihood ratio test (1 df)}
+#' \item{pt}{p-value for the t-statistic (normal distribution)}
+#' \item{pchi}{p-value for the chi-square statistic}
 #' @seealso \code{\link{fitlmer}}, \code{\link{modSpace}},
 #' \code{\link{fitstepwise.bestpath}}, \code{\link{reassembleStepwiseFile}}
 #' @examples
@@ -889,15 +901,15 @@ fitstepwise <- function(mcr.data, wsbi, mf, crit=c(.01,.05,seq(.1,.8,.1))) {
 #' of crit) = 12 values in each row of the dataframe.  To assemble a dataframe
 #' of results from a file into a three-dimensional array, see
 #' \code{\link{reassembleStepwiseFile}}.
-#' \item{fm} the model that was selected.  4 means that no model
+#' \item{fm}{the model that was selected.  4 means that no model
 #' converged.  For forward stepping models, 3 = maximal model was selected; 2 =
 #' model includes only first slope; 1 = model is random intercept only.  For
 #' backward stepping models, 1 = maximal model, 2 = model minus one slope, 3 =
-#' random intercept model.
-#' \item{t} t-statistic for the treatment effect
-#' \item{chi} chi-square statistic for the likelihood ratio test (1 df)
-#' \item{pt} p-value for the t-statistic (normal distribution)
-#' \item{pchi} p-value for the chi-square statistic
+#' random intercept model.}
+#' \item{t}{t-statistic for the treatment effect}
+#' \item{chi}{chi-square statistic for the likelihood ratio test (1 df)}
+#' \item{pt}{p-value for the t-statistic (normal distribution)}
+#' \item{pchi}{p-value for the chi-square statistic}
 #' @seealso \code{\link{fitlmer}}, \code{\link{modSpace}},
 #' \code{\link{fitstepwise}}, \code{\link{reassembleStepwiseFile}}
 #' @examples
@@ -1032,10 +1044,10 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
 #' bysubjcond'; see Details)
 #' @param rigen use a 'random-intercepts-only' generative model (default FALSE)
 #' @return A dataframe, with fields:
-#' \item{SubjID} a factor, identifying subject number
-#' \item{ItemID} a factor, identifying item number
-#' \item{Cond} treatment condition, deviation coded (-.5, .5)
-#' \item{Resp} response variable
+#' \item{SubjID}{a factor, identifying subject number}
+#' \item{ItemID}{a factor, identifying item number}
+#' \item{Cond}{treatment condition, deviation coded (-.5, .5)}
+#' \item{Resp}{response variable}
 #' @seealso \code{\link{genParamRanges}}, \code{\link{mkDf.facMixedAB}}
 #' @examples
 #' 
@@ -1066,8 +1078,8 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
 mkDf <- function(nsubj=24,    # number of subjects
                   nitem=24,    # number of items
                   wsbi=FALSE,     # if design is between items (TRUE) or within (FALSE)
-                  mcr.params=createParamMx(1,firstseed=sample(1:1000000,1))[1,],
-                                     # vector of parameters for generation (see createParamMx)
+                  mcr.params=randParams(genParamRanges(), 1)[1,],
+                                     # vector of parameters for generation
                   missMeth="random", # method for generating missing obs
                   rigen=FALSE) { # random-intercepts-only generative model
   #   This function creates simulated data given a row of parameters and
@@ -1080,7 +1092,9 @@ mkDf <- function(nsubj=24,    # number of subjects
     return(matrix(c(v1,cv,cv,v2),ncol=2))
   }
 
-  set.seed(mcr.params[["seed"]])
+  if ("seed" %in% names(mcr.params)) {
+      set.seed(mcr.params[["seed"]])
+  } else {}
   
   if (((nitem %% 2) != 0) || (nitem < 4)) {
     stop("number of items must be >= 4 and a factor of 2")
@@ -1098,13 +1112,13 @@ mkDf <- function(nsubj=24,    # number of subjects
 
   # subject random effects
   subj <- cbind(SubjID=factor(1:nsubj),
-                mvrnorm(nsubj, mu=c(0,0),
+                MASS::mvrnorm(nsubj, mu=c(0,0),
                         Sigma=mkSigma(mcr.params[["t00"]], mcr.params[["t11"]], mcr.params[["rsub"]])))
   colnames(subj) <- c("SubjID","ri.subj","rs.subj")
 
   # item random effects
   item <- cbind(ItemID=factor(1:nitem),
-                mvrnorm(nitem, mu=c(0,0),
+                MASS::mvrnorm(nitem, mu=c(0,0),
                         Sigma=mkSigma(mcr.params[["w00"]], mcr.params[["w11"]], mcr.params[["ritm"]])) )
   colnames(item) <- c("ItemID","ri.item","rs.item")
 
@@ -1209,9 +1223,9 @@ mkDf <- function(nsubj=24,    # number of subjects
 #' \code{\link{fitstepwise.bestpath}}) or a list of two three dimensional
 #' arrays if \code{\link{fitstepwise}} was used, one for forward and one for
 #' backward selection.  Each array has the following dimensions:
-#' \item{run} the Monte Carlo run
-#' \item{crit} the alpha level for selection
-#' \item{params} the resulting values from individual calls to
+#' \item{run}{the Monte Carlo run}
+#' \item{crit}{the alpha level for selection}
+#' \item{params}{the resulting values from individual calls to}
 #' \code{fitstepwise} or \code{fitstepwise.bestpath}
 #' @seealso \code{\link{fitstepwise}}, \code{\link{fitstepwise.bestpath}}.
 #' @examples

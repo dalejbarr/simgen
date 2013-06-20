@@ -6,21 +6,21 @@
 }
 \value{
   An environment object, containing the following
-  variables: \item{evar.range} range of error variance
-  (default [0,3]) \item{icept.range} range of intercept
-  (default [-3, 3]) \item{pmissing.range} range of
-  proportion missing obs (default [0, .05])
-  \item{r01.item.range} range of by-subject intercept/slope
-  correlation (default [-.8, .8]) \item{r01.subj.range}
-  range of by-item intercept/slope correlation (default
-  [-.8, .8]) \item{slope} treatment effect, when h0 TRUE,
-  0; when h0 FALSE, .8 \item{t00.range} range of by-subject
-  random intercept variance (default [0, 3]
-  \item{t11.range} range of by-subject random slope
-  variance (default [0, 3]) \item{w00.range} range of
-  by-item random intercept variance (default [0, 3])
-  \item{w11.range} range of by-item random slope variance
-  (default [0, 3])
+  variables: \item{evar.range}{range of error variance
+  (default [0,3])} \item{icept.range}{range of intercept
+  (default [-3, 3])} \item{pmissing.range}{range of
+  proportion missing obs (default [0, .05])}
+  \item{r01.item.range}{range of by-subject intercept/slope
+  correlation (default [-.8, .8])}
+  \item{r01.subj.range}{range of by-item intercept/slope
+  correlation (default [-.8, .8])} \item{slope}{treatment
+  effect, when h0 TRUE, 0; when h0 FALSE, .8}
+  \item{t00.range}{range of by-subject random intercept
+  variance (default [0, 3]} \item{t11.range}{range of
+  by-subject random slope variance (default [0, 3])}
+  \item{w00.range}{range of by-item random intercept
+  variance (default [0, 3])} \item{w11.range}{range of
+  by-item random slope variance (default [0, 3])}
 }
 \description{
   Get the default list of parameter ranges used in the

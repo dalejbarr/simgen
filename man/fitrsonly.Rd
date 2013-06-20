@@ -12,15 +12,15 @@
   within-items (FALSE).}
 }
 \value{
-  A vector with elements: \item{fm} Code for the model that
+  A vector with elements: \item{fm}{Code for the model that
   converged: (1) dropped one slope; (2) dropped two slopes;
   (3) main model did not converge; (4) comparision model
-  for likelihood ratio test did not converge. \item{t}
-  t-statistic for the treatment effect \item{chi}
-  chi-square statistic for the likelihood ratio test (1 df)
-  \item{pt} p-value for the t-statistic (normal
-  distribution) \item{pchi} p-value for the chi-square
-  statistic
+  for likelihood ratio test did not converge.}
+  \item{t}{t-statistic for the treatment effect}
+  \item{chi}{chi-square statistic for the likelihood ratio
+  test (1 df)} \item{pt}{p-value for the t-statistic
+  (normal distribution)} \item{pchi}{p-value for the
+  chi-square statistic}
 }
 \description{
   Fits a LMEM with by-subject (and by-item, when

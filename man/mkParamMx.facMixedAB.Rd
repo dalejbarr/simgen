@@ -1,0 +1,32 @@
+\name{mkParamMx.facMixedAB}
+\alias{mkParamMx.facMixedAB}
+\title{Make matrix of data-generating parameters for mixed factorial design}
+\usage{
+  mkParamMx.facMixedAB(param.list, nmc = 1000,
+    firstseed = NULL)
+}
+\arguments{
+  \item{param.list}{list of DGP ranges (e.g., from
+  \code{\link{genParamRanges.facMixedAB}})}
+
+  \item{nmc}{number of populations to generate}
+
+  \item{firstseed}{random number seed to use before
+  generating populations}
+}
+\value{
+  A matrix, each row of which corresponds to parameters for
+  a single population
+}
+\description{
+  Make matrix of data-generating parameters for mixed
+  factorial design
+}
+\examples{
+mkParamMx.facMixedAB(genParamRanges.facMixedAB(), 10)
+}
+\seealso{
+  \code{\link{genParamRanges.facMixedAB}},
+  \code{\link{mkDf.facMixedAB}}
+}
+

@@ -1,23 +1,3 @@
-#' Monte Carlo Simulation of Simultaneous Generalization to Subjects and Items
-#' 
-#' Routines for running Monte Carlo simulations testing the generalizability of
-#' various ways of analyzing datasets with crossed random effects.  This
-#' accompanies a paper by Barr, Levy, Scheepers, & Tily (under revision).  See
-#' http://idiom.ucsd.edu/~rlevy/papers/barr-levy-scheepers-tily-8-aug-2011-submitted.pdf.
-#' 
-#' \tabular{ll}{ Package: \tab simgen\cr Type: \tab Package\cr Version: \tab
-#' 1.5\cr Date: \tab 2012-02-20\cr License: \tab GPL (>= 2)\cr LazyLoad: \tab
-#' yes\cr } To get started, see \code{\link{createParamMx}},
-#' \code{\link{mkDf}}, and \code{\link{mcRun}}.
-#' 
-#' @name simgen-package
-#' @aliases simgen-package simgen
-#' @docType package
-#' @author Dale J. Barr <dale.barr@@glasgow.ac.uk>
-#' @keywords package
-
-
-
 #' Fit model with error-trapping
 #' 
 #' Try to fit an lmer model, catching any errors/warnings
@@ -29,8 +9,8 @@
 #' 
 #' %% ...
 #' @return
-#' \item{value} fitted model object from lmer
-#' \item{converged} whether or not the model converged
+#' \item{value}{fitted model object from lmer}
+#' \item{converged}{whether or not the model converged}
 #' @seealso \code{\link{fitlmer}}, \code{\link{modSpace}}
 #' @examples
 #' 
@@ -222,17 +202,63 @@ getLmer.pValue <- function(m1,m2) {
 #' \code{lrc.modCompare}. If a test could not be performed (e.g.,
 #' because one or both of the corresponding models did not converge),
 #' \code{NA} is returned.
+#'
+#' @examples
+#' dat <- mkDf()
 #' 
+#' lrCompare(dat,
+#'           lrc.mods=list(
+#'               ri=    Resp~Cond+(1|SubjID)+     (1|ItemID),
+#'               ri.noC= Resp~     (1|SubjID)+     (1|ItemID),
+#'               max=    Resp~Cond+(1+Cond|SubjID)+(1+Cond|ItemID),
+#'               max.noC=Resp~     (1+Cond|SubjID)+(1+Cond|ItemID)),
+#'           lrc.modCompare=list(
+#'               ri=c("ri",  "ri.noC"),
+#'               max=c("max","max.noC")),
+#'           REML=FALSE, na.action=na.omit) # pass to tryFit/lmer
+#' 
+#' dat <- mkDf.facMixedAB(nitem=24)
+#' 
+#' lrCompare(dat,
+#'           lrc.mods=list(
+#'               m=   Y~Ad*Bd+   (1+Bd|SubjID)+(1+Ad*Bd|ItemID),
+#'               m.A= Y~Bd+Ad:Bd+(1+Bd|SubjID)+(1+Ad*Bd|ItemID),
+#'               m.B= Y~Ad+Ad:Bd+(1+Bd|SubjID)+(1+Ad*Bd|ItemID),
+#'               m.AB=Y~Ad+Bd+   (1+Bd|SubjID)+(1+Ad*Bd|ItemID)),
+#'           lrc.modCompare=list(
+#'               A=c("m","m.A"), B=c("m","m.B"), AB=c("m","m.AB")),
+#'           REML=FALSE, na.action=na.omit)
 #' @export lrCompare
 lrCompare <- function(mcr.data, lrc.mods, lrc.modCompare, ...) {
     extraArgs <- c(list(tf.data=mcr.data), list(...))
-    modres <- do.call(lapply, c(list(X=lrc.mods, FUN=tryFit), extraArgs))
+    argsToTryFit <- c(list(X=lrc.mods, FUN=tryFit), extraArgs)
+    modres <- do.call(lapply, argsToTryFit)
     unlist(lapply(lrc.modCompare, function(x) {
         getLmer.pValue(modres[[x[[1]]]], modres[[x[[2]]]])
     }))
 }
 
-
+#' Generate population parameters from data-generating parameters
+#'
+#' Takes a list of ranges for data-generating parameters and randomly
+#' instantiates parameters for a series of populations, drawing each
+#' value from a uniform distribution.
+#'
+#' @param plist Named list of parameters (e.g., from
+#' \code{\link{genParamRanges}}), with each element of the list a
+#' vector that defines the parameter's range (min, max).  If the
+#' vector has only a single element, that parameter is treated as
+#' constant.
+#' @param nmc Number of populations to create
+#' @param firstseed Seed the random number generator before generating
+#' the populations (unless \code{NULL}).
+#' @return A matrix where each row has the parameter values for a population
+#'
+#' @examples
+#' randParams(genParamRanges(), 2, 1001)
+#' randParams(genParamRanges(), 2, 1001) # same result as above
+#' randParams(genParamRanges(), 10) # different
+#' 
 #' @export randParams
 randParams <- function(plist, nmc=1, firstseed=NULL) {
     if (!is.null(firstseed)) {
@@ -260,6 +286,37 @@ randParams <- function(plist, nmc=1, firstseed=NULL) {
     matrix(unlist(ff), nrow=nmc, dimnames=list(NULL, names(plist)))
 }
 
+
+#' Find valid parameters for a variance-covariance matrix
+#'
+#' To generate data from a multivariate normal distribution using
+#' \code{mvrnorm} in the \code{MASS} package, it is necessary to
+#' specify a square variance-covariance matrix that is symmetric and
+#' 'positive definite.'
+#'
+#' This function takes data-generating parameter ranges (variances and
+#' covariances) and randomly generates values for a single population.
+#' Use a brute-force method, so to avoid hanging, set \code{maxtries}
+#' to a reasonable value.
+#'
+#' A 3x3 matrix corresponds to 3 variances on the diagonal, and 6
+#' variances (forming the upper or lower triangle).  Stated generally,
+#' an NxN matrix requires \code{sum(1:(N-1))} covariances.
+#'
+#' @param vars (named) list of ranges of variances; if not named,
+#' given names V1..VN
+#' @param corrs (named) list of correlations (range -1 to 1); if not
+#' named, given names C1..CN.  List them in the following order: take
+#' the upper triangle of the matrix, list all elements in the first
+#' row (left to right), then the second row, etc.
+#' @param maxtries the number of attempts before giving up
+#' @return A vector of variances and correlations
+#' @examples
+#' pars <- findValidVCovParams(vars=list(A=c(1,3),B=c(1,3), C=c(0,2)),
+#'                             corrs=list(AB=c(-.5,.5),AC=c(-.5,.5),BC=c(-.5,.5)))
+#'
+#' formVCovMx(pars[1:3], pars[4:6])
+#' @seealso \code{\link{formVCovMx}}
 #' @export findValidVCovParams
 findValidVCovParams <- function(vars, corrs=as.list(rep(0,sum(1:(length(vars)-1)))),
                                 maxtries=10000) {
@@ -272,6 +329,13 @@ findValidVCovParams <- function(vars, corrs=as.list(rep(0,sum(1:(length(vars)-1)
     if (is.null(names(corrs))) {
         names(corrs) <- paste("C", 1:length(corrs), sep="")
     } else {}
+    lapply(corrs, function(x) {
+        lapply(x, function(y) {
+            if (y<(-1) || y>1) {
+                stop("correlations must be between -1 and 1")
+            } else {}
+        })
+    })
     ntries <- 0
     done <- FALSE
     # use brute force to find a definite positive matrix
@@ -286,9 +350,24 @@ findValidVCovParams <- function(vars, corrs=as.list(rep(0,sum(1:(length(vars)-1)
         } else {}
         ntries <- ntries + 1
     }
-    return(parms)
+    return(parms[1,])
 }
 
+
+#' Form a symmetric variance-covariance matrix
+#'
+#' Takes a vector of variances and correlations, calculates
+#' covariances and forms a symmetric matrix (for use in generating
+#' data from a multivariate normal distribution)
+#'
+#' @param vars vector of variances
+#' @param corrs vector of correlations
+#' @return A symmetric variance-covariance matrix
+#' @examples
+#' pars <- findValidVCovParams(vars=list(A=c(1,3),B=c(1,3), C=c(0,2)),
+#'                             corrs=list(AB=c(-.5,.5),AC=c(-.5,.5),BC=c(-.5,.5)))
+#'
+#' formVCovMx(pars[1:3], pars[4:6])
 #' @export formVCovMx
 formVCovMx <- function(vars, corrs) {
     if (length(corrs)!=sum(1:(length(vars)-1))) {
@@ -329,7 +408,15 @@ formVCovMx <- function(vars, corrs) {
     return(mx)
 }
 
-
+#' Load in package simgen on all available clusters
+#'
+#' This function is called by \code{\link{mcRun}} to load the package
+#' functions across all clusters.  Typically users should not need to
+#' call this function.
+#'
+#' @param cl cluster object (created e.g. by
+#' \code{\link{makeCluster}}; see package parallel for details.
+#' 
 #' @importFrom parallel clusterCall
 #' @export initializeCluster
 initializeCluster <- function(cl) {
