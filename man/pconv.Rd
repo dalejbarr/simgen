@@ -1,0 +1,29 @@
+\name{pconv}
+\alias{pconv}
+\title{Proportion of runs achieving convergence}
+\usage{
+  pconv(x)
+}
+\arguments{
+  \item{x}{Vector or matrix where each row is a single run}
+}
+\value{
+  A vector with the proportion of converging runs.
+}
+\description{
+  Proportion of runs achieving convergence
+}
+\examples{
+nmc <- 10
+pmx <- cbind(randParams(genParamRanges(), nmc, 1001), seed=mkSeeds(nmc, 1001))
+
+res <- mcRun("fitanova", mcr.fnArgs=list(wsbi=FALSE),
+             mcr.datFn="mkDf", mcr.datArgs=list(wsbi=FALSE),
+             mcr.varying=pmx)
+
+pconv(res[,c("p1","p2","pmf","pmax")])
+}
+\seealso{
+  \code{\link{psig}}
+}
+

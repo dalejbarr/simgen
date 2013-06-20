@@ -1,0 +1,23 @@
+\name{mkSeeds}
+\alias{mkSeeds}
+\title{Make random seeds for Monte Carlo runs}
+\usage{
+  mkSeeds(nmc = 1000, firstseed = NULL)
+}
+\arguments{
+  \item{nmc}{Number of Monte Carlo runs (default 1000)}
+
+  \item{firstseed}{Seed for generating seeds (meta-seed?)}
+}
+\value{
+  A vector of seeds up to .Machine$integer.max
+}
+\description{
+  Creates a vector of unique random seeds for reproducible
+  generation of datasets.
+}
+\examples{
+nmc <- 10
+pmx <- cbind(randParams(genParamRanges(), nmc, 1001), seed=mkSeeds(nmc, 1001))
+}
+
