@@ -2,7 +2,7 @@
 \alias{mkDf.facMixedAB}
 \title{Generate simulated data from a two-way mixed factorial design}
 \usage{
-  mkDf.facMixedAB(mcr.params = randParams(genParamRanges.facMixedAB(), 1)[1, ],
+  mkDf.facMixedAB(mcr.params = mkParamMx.facMixedAB(genParamRanges.facMixedAB(), 1)[1, ],
     nsubj = 24, nitem = NULL, nreps = NULL,
     showRfx = FALSE)
 }

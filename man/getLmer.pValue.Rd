@@ -10,8 +10,9 @@
   \item{m2}{A model fitted by \code{\link{tryFit}}}
 }
 \value{
-  A p-value or \code{NA} if either (or both) models did not
-  converge
+  A vector with: \item{chisq}{observed chi-square
+  (difference in -2LL for models)} \item{df}{degrees of
+  freedom for the comparison} \item{p}{p-value}
 }
 \description{
   Derive p-value by comparing two models fitted by

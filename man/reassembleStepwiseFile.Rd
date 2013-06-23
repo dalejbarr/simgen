@@ -28,16 +28,18 @@
 }
 \examples{
 nmc <- 10 # number of monte carlo simulations
-create the parameter matrix
+# create the parameter matrix
 pmx <- cbind(randParams(genParamRanges(), nmc, 1001), seed=mkSeeds(nmc, 1001))
 
 # mf contains model formulae for the various models to fit
 mf <- list(max=Resp ~ Cond + (1 + Cond | SubjID) + (1 + Cond | ItemID),
-            mid=srs=Resp ~ Cond + (1 + Cond | SubjID) + (1 | ItemID),
+            mid.srs=Resp ~ Cond + (1 + Cond | SubjID) + (1 | ItemID),
             min=Resp ~ Cond + (1 | SubjID) + (1 | ItemID))
 
 mcRun("fitstepwise", mcr.outfile="test.txt",
-      mcr.xdatFnc="mkDf", mcr.varying=pmx, mf=mf, wsbi=FALSE)
+      mcr.fnArgs=list(wsbi=FALSE, mf=mf),
+      mcr.datFn="mkDf", mcr.datArgs=list(wsbi=FALSE),
+      mcr.varying=pmx)
 
 ff <- reassembleStepwiseFile("test.txt")
 ff$forward[,2,]  # alpha-level=.05

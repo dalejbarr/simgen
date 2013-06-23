@@ -67,18 +67,18 @@ genParamRanges <- function() {
 #'
 #' @export genParamRanges.facMixedAB
 genParamRanges.facMixedAB <- function() {
-    params1 <- list(t_00=c(1,3), # random intercept variance
-                    t_11=c(1,3), # random slope variance
+    params1 <- list(t_00=c(0,3), # random intercept variance
+                    t_11=c(0,3), # random slope variance
                     r_01=c(-.9,.9), # random intercept/slope correlation
                     evar=3, # error variance
                     mu=list(c(-2,-1), c(1,2)),
                     A=list(c(-2,-1), c(1,2)),
                     B=list(c(-2,-1), c(1,2)),
                     AB=list(c(-2,-1), c(1,2)))
-    params2 <- list(w_00=c(1,3), # by-item int variance
-                    w_11=c(1,3), # by-item slope var (A)
-                    w_22=c(1,3), # by-item slope var (B)
-                    w_33=c(1,3), # by-item slope var (AB)
+    params2 <- list(w_00=c(0,3), # by-item int variance
+                    w_11=c(0,3), # by-item slope var (A)
+                    w_22=c(0,3), # by-item slope var (B)
+                    w_33=c(0,3), # by-item slope var (AB)
                     w_01=c(-.9,.9), # by-item int/A corr
                     w_02=c(-.9,.9), # by-item int/B corr
                     w_03=c(-.9,.9), # by-item int/AB corr
@@ -135,7 +135,7 @@ mkParamMx.facMixedAB <- function(param.list, nmc=1000, firstseed=NULL) {
 #' mkDf.facMixedAB(nreps=2)
 #' 
 #' #' @export mkDf.facMixedAB
-mkDf.facMixedAB <- function(mcr.params=randParams(genParamRanges.facMixedAB(), 1)[1,],
+mkDf.facMixedAB <- function(mcr.params=mkParamMx.facMixedAB(genParamRanges.facMixedAB(), 1)[1,],
                             nsubj=24, nitem=NULL, nreps=NULL, showRfx=FALSE) {
     if (is.null(nitem) && is.null(nreps)) {
         stop("need to define either 'nitem' or 'nreps' argument. see ?mkDf.facMixedAB")

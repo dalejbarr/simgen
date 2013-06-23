@@ -10,7 +10,8 @@ Depends:
 Imports:
     parallel,
     lme4,
-    MASS
+    MASS,
+    Matrix
 Description: R Code to accompany Barr, Levy, Scheepers, & Tily, "Keep It
     Maximal"
 License: GPL (>= 2)

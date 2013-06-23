@@ -14,8 +14,7 @@
   within-items (FALSE).}
 
   \item{mf}{List of the models to be tested, in decreasing
-  order of complexity (see \code{\link{modSpace}} for
-  examples of generating such a list).}
+  order of complexity.}
 
   \item{crit}{alpha level for each likelihood-ratio test of
   slope variance.}
@@ -56,9 +55,13 @@ nmc <- 10
 pmx <- cbind(randParams(genParamRanges(), nmc, 1001), seed=mkSeeds(nmc, 1001))
 
 x8 <- mkDf(nsubj=24, nitem=24, pmx[8,], wsbi=FALSE)
-mf <- modSpace(wsbi=FALSE) # figure out set of possible models
-mf.sfirst <- c(mf[3], mf[[2]][1], mf[1]) # test subject slope first
-mf.ifirst <- c(mf[3], mf[[2]][2], mf[1]) # test items slope first
+
+mf.sfirst <- list(min=Resp ~ Cond + (1 | SubjID) + (1 | ItemID),
+                 srs=Resp ~ Cond + (1 + Cond | SubjID) + (1 | ItemID),
+                 max=Resp ~ Cond + (1 + Cond | SubjID) + (1 + Cond | ItemID))
+mf.ifirst <- list(min=Resp ~ Cond + (1 | SubjID) + (1 | ItemID),
+                  irs=Resp ~ Cond + (1 | SubjID) + (1 + Cond | ItemID),
+                  max=Resp ~ Cond + (1 + Cond | SubjID) + (1 + Cond | ItemID))
 
 # forward, subj first
 fitstepwise(x8, wsbi=FALSE, mf=mf.sfirst, crit=.05)
@@ -67,7 +70,7 @@ fitstepwise(x8, wsbi=FALSE, mf=mf.sfirst, crit=.05)
 fitstepwise(x8, wsbi=FALSE, mf=mf.ifirst, crit=.05)
 }
 \seealso{
-  \code{\link{fitlmer}}, \code{\link{modSpace}},
+  \code{\link{fitlmer}},
   \code{\link{fitstepwise.bestpath}},
   \code{\link{reassembleStepwiseFile}}
 }

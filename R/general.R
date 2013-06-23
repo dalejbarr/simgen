@@ -3,21 +3,21 @@
 #' Try to fit an lmer model, catching any errors/warnings
 #' 
 #' 
-#' @param mf The model formula
-#' @param xdat The data frame
-#' @return %% ~Describe the value returned %% If it is a LIST, use
-#' 
-#' %% ...
-#' @return
+#' @param tf.formula The model formula
+#' @param tf.data The data frame
+#' @param ... Arguments to be passed onto the fitting function \code{\link{lmer}}
+#' @return A list with:
 #' \item{value}{fitted model object from lmer}
 #' \item{converged}{whether or not the model converged}
-#' @seealso \code{\link{fitlmer}}, \code{\link{modSpace}}
+#' @seealso \code{\link{fitlmer}}
 #' @examples
 #' 
 #' # random intercepts only
 #' ff <- tryFit(Resp~Cond + (1+Cond|SubjID)+(1+Cond|ItemID), mkDf())
 #'
 #' @importFrom lme4 lmer
+#' @importClassesFrom lme4 mer
+#' @importMethodsFrom lme4 summary show
 #' @export tryFit
 tryFit <- function(tf.formula, tf.data, ...) {
     converged <- TRUE
@@ -161,7 +161,10 @@ contr.deviation <- function(n) {
 #'
 #' @param m1 A model fitted by \code{\link{tryFit}}
 #' @param m2 A model fitted by \code{\link{tryFit}}
-#' @return A p-value or \code{NA} if either (or both) models did not converge
+#' @return A vector with:
+#' \item{chisq}{observed chi-square (difference in -2LL for models)}
+#' \item{df}{degrees of freedom for the comparison}
+#' \item{p}{p-value}
 #' @examples
 #' d1 <- mkDf()
 #' 
@@ -175,6 +178,18 @@ contr.deviation <- function(n) {
 #' @importFrom lme4 lmer
 #' @export getLmer.pValue
 getLmer.pValue <- function(m1,m2) {
+    pval <- c(chisq=NA, df=NA, p=NA)
+    if (m1$converged && m2$converged) {
+        df1 <- length(lme4::fixef(m1$value))+sum(unlist(lapply(lme4::VarCorr(m1$value), function(x) {dim(x)[1]})))
+        df2 <- length(lme4::fixef(m2$value))+sum(unlist(lapply(lme4::VarCorr(m2$value), function(x) {dim(x)[1]})))
+        pval["df"] <- abs(df1-df2)
+        pval["chisq"] <- abs((-2*lme4::logLik(m1$value))-(-2*lme4::logLik(m2$value)))
+        pval["p"] <- as.numeric(pchisq(pval["chisq"], pval["df"], lower.tail=FALSE))
+    } else {}
+    return(pval)
+}
+
+getLmer.chisq <- function(m1,m2) {
     pval <- NA
     if (m1$converged && m2$converged) {
         chisq.val <- (-2*lme4::logLik(m1$value))-(-2*lme4::logLik(m2$value))
@@ -234,7 +249,7 @@ lrCompare <- function(mcr.data, lrc.mods, lrc.modCompare, ...) {
     argsToTryFit <- c(list(X=lrc.mods, FUN=tryFit), extraArgs)
     modres <- do.call(lapply, argsToTryFit)
     unlist(lapply(lrc.modCompare, function(x) {
-        getLmer.pValue(modres[[x[[1]]]], modres[[x[[2]]]])
+        getLmer.pValue(modres[[x[[1]]]], modres[[x[[2]]]])["p"]
     }))
 }
 

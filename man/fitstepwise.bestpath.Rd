@@ -72,8 +72,7 @@ fitstepwise.bestpath(mcr.data=x8, forward=TRUE, crit=.05)
 fitstepwise.bestpath(mcr.data=x8, forward=FALSE, crit=.05)
 }
 \seealso{
-  \code{\link{fitlmer}}, \code{\link{modSpace}},
-  \code{\link{fitstepwise}},
+  \code{\link{fitlmer}}, \code{\link{fitstepwise}},
   \code{\link{reassembleStepwiseFile}}
 }
 

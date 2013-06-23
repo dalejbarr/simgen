@@ -5,16 +5,15 @@
   tryFit(tf.formula, tf.data, ...)
 }
 \arguments{
-  \item{mf}{The model formula}
+  \item{tf.formula}{The model formula}
 
-  \item{xdat}{The data frame}
+  \item{tf.data}{The data frame}
+
+  \item{...}{Arguments to be passed onto the fitting
+  function \code{\link{lmer}}}
 }
 \value{
-  %% ~Describe the value returned %% If it is a LIST, use
-
-  %% ...
-
-  \item{value}{fitted model object from lmer}
+  A list with: \item{value}{fitted model object from lmer}
   \item{converged}{whether or not the model converged}
 }
 \description{
@@ -25,6 +24,6 @@
 ff <- tryFit(Resp~Cond + (1+Cond|SubjID)+(1+Cond|ItemID), mkDf())
 }
 \seealso{
-  \code{\link{fitlmer}}, \code{\link{modSpace}}
+  \code{\link{fitlmer}}
 }
 

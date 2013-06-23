@@ -22,12 +22,12 @@
   return(result)
 }
 
-#' @importFrom lme4 VarCorr
+#' @importFrom lme4 VarCorr fixef
 .modCompare <- function(mods) {
   getDf <- function(mm) {
-    1+sum(c(unlist(lapply(lme4:::VarCorr(mm), function(y) {sum(1:dim(y)[1])})), length(fixef(mm))))
+    1+sum(c(unlist(lapply(lme4:::VarCorr(mm), function(y) {sum(1:dim(y)[1])})), length(lme4::fixef(mm))))
   }
-  mod.inf <- rbind(unlist(lapply(mods, deviance)),
+  mod.inf <- rbind(unlist(lapply(mods, lme4:::deviance)),
                    unlist(lapply(mods, getDf)))
                                         # compare all models sequentially
   ff <- lapply(2:ncol(mod.inf), function(x) {
@@ -43,6 +43,7 @@
   return(cmp.mx)
 }
 
+#' @importMethodsFrom lme4 deviance
 .stepwiseFit <- function(mf, mcr.data, crit=c(.01,.05,seq(.1,.8,.1))) {
                                         # mf: list of model formulae in order of testing
                                         # xd: the data frame
@@ -90,7 +91,7 @@
   if (tot.mods < 2) {
     stop("need 2 or more models to be tested")
   } else {}
-  mfits <- lapply(mf, tryFit.default, xdat=xd)
+  mfits <- lapply(mf, .tryFit.default, xdat=xd)
   cvg.ix <- (1:length(mfits))[unlist(lapply(mfits, function(x) {x$converged}))]
   mods <- lapply(mfits[cvg.ix], function(x) {x$value})
   if (length(mods) < 2) {
@@ -131,7 +132,7 @@
 }
 
 #' @importFrom Matrix diag
-#' @importFrom lme4 vcov
+#' @importFrom lme4 vcov fixef
 .modInfo <- function(mod, xd, wsbi) {
                                         # do comparison model
   mf2 <- .modSpace(wsbi)[[names(mod)]]
@@ -142,44 +143,57 @@
     } else {}    
   } else {}
   mf3 <- as.formula(paste(mf2[2], "~", mf2[3], "-Cond", sep=""))
-  if ( (mod2 <- tryFit.default(mf3, xd))$converged ) {
-    m1 <- mod2[["value"]]; m2 <- mod[[1]]
-    mcmp <- anova(m1, m2)
-    chi.obs <- mcmp$`Chisq`[2]
-    chi.p <- mcmp$`Pr(>Chisq)`[2]
+  if ( (mod2 <- .tryFit.default(mf3, xd))$converged ) {
+    m1 <- mod2[["value"]]
+    m2 <- mod[[1]]
+    res <- .getLmer.pValue2(m1, m2)
+    chi.obs <- res["chisq"]
+    chi.p <- res["p"]
   } else {
     chi.obs <- NA
     chi.p <- NA
   }
-  t.obs <- (fixef(mod[[1]])[2])/(sqrt(Matrix:::diag(lme4:::vcov(mod[[1]])))[2])
+  m2 <- mod[[1]]
+  t.obs <- (lme4:::fixef(m2)[2])/(sqrt(Matrix:::diag(lme4:::vcov(m2)))[2])
   v1 <- c(fm=.mod2Code(mod), t.obs[1],
           chi.obs,
           2*(1-pnorm(abs(t.obs))),
           chi.p,
-          eff=fixef(mod[[1]])[2])
+          eff=lme4:::fixef(m2)[2])
   names(v1) <- c("fm", "t","chi","pt","pchi","esteff")
   return(v1)
 }
 
+.getLmer.pValue2 <- function(m1,m2) {
+    pval <- c(chisq=NA, df=NA, p=NA)
+    df1 <- length(lme4::fixef(m1))+sum(unlist(lapply(lme4::VarCorr(m1), function(x) {dim(x)[1]})))
+    df2 <- length(lme4::fixef(m2))+sum(unlist(lapply(lme4::VarCorr(m2), function(x) {dim(x)[1]})))
+    pval["df"] <- abs(df1-df2)
+    pval["chisq"] <- abs((-2*lme4::logLik(m1))-(-2*lme4::logLik(m2)))
+    pval["p"] <- as.numeric(pchisq(pval["chisq"], pval["df"], lower.tail=FALSE))
+    return(pval)    
+}
+
 #' @importFrom Matrix diag
-#' @importFrom lme4 vcov
+#' @importFrom lme4 vcov fixef anova
+#' @importClassesFrom lme4 mer
+#' @importMethodsFrom lme4 anova
 .modInfo1 <- function(mf2, xd, mod) {
   mf3 <- as.formula(paste(mf2[2], "~", mf2[3], "-Cond", sep=""))
-  if ( (mod2 <- tryFit.default(mf3, xd))$converged ) {
-    m1 <- mod2[["value"]]; m2 <- mod[[1]]
-    mcmp <- anova(m1, m2)
-    chi.obs <- mcmp$`Chisq`[2]
-    chi.p <- mcmp$`Pr(>Chisq)`[2]
+  if ( (mod2 <- .tryFit.default(mf3, xd))$converged ) {
+    res <- getLmer.pValue(mod2, mod)
+    chi.obs <- res["chisq"]
+    chi.p <- res["p"]
   } else {
     chi.obs <- NA
     chi.p <- NA
   }
-  t.obs <- (fixef(mod[[1]])[2])/(sqrt(Matrix:::diag(lme4:::vcov(mod[[1]])))[2])
+  t.obs <- (lme4:::fixef(mod[[1]])[2])/(sqrt(Matrix:::diag(lme4:::vcov(mod[[1]])))[2])
   v1 <- c(fm=mod$converged, t.obs[1],
           chi.obs,
           2*(1-pnorm(abs(t.obs))),
           chi.p,
-          eff=fixef(mod[[1]])[2])
+          eff=lme4:::fixef(mod[[1]])[2])
   names(v1) <- c("fm", "t","chi","pt","pchi","esteff")
   return(v1)
 }
@@ -646,7 +660,7 @@ fitlmer <- function(mcr.data, ri.only=FALSE, wsbi=FALSE) {
     ts.chi <- NA
     p.chi <- NA
   } else {
-    ts.chi <- deviance(xd.lmer.2)-deviance(xd.lmer)
+    ts.chi <- lme4:::deviance(xd.lmer.2)-lme4:::deviance(xd.lmer)
     p.chi <- pchisq(abs(ts.chi), 1, lower.tail=F)
   }
   
@@ -821,8 +835,7 @@ fitnocorr.mcmc <- function(mcr.data, wsbi=FALSE, nmcmc=10000) {
 #' Named thus to interface with the function \code{\link{mcRun}}.
 #' @param wsbi Whether the design is between-items (TRUE) or within-items
 #' (FALSE).
-#' @param mf List of the models to be tested, in decreasing order of complexity
-#' (see \code{\link{modSpace}} for examples of generating such a list).
+#' @param mf List of the models to be tested, in decreasing order of complexity.
 #' @param crit alpha level for each likelihood-ratio test of slope variance.
 #' @return A single row of a dataframe with number of fields depending on
 #' \code{crit}.  Stepwise lmer models output six values for each alpha level
@@ -842,7 +855,7 @@ fitnocorr.mcmc <- function(mcr.data, wsbi=FALSE, nmcmc=10000) {
 #' \item{chi}{chi-square statistic for the likelihood ratio test (1 df)}
 #' \item{pt}{p-value for the t-statistic (normal distribution)}
 #' \item{pchi}{p-value for the chi-square statistic}
-#' @seealso \code{\link{fitlmer}}, \code{\link{modSpace}},
+#' @seealso \code{\link{fitlmer}}, 
 #' \code{\link{fitstepwise.bestpath}}, \code{\link{reassembleStepwiseFile}}
 #' @examples
 #' 
@@ -850,9 +863,13 @@ fitnocorr.mcmc <- function(mcr.data, wsbi=FALSE, nmcmc=10000) {
 #' pmx <- cbind(randParams(genParamRanges(), nmc, 1001), seed=mkSeeds(nmc, 1001))
 #' 
 #' x8 <- mkDf(nsubj=24, nitem=24, pmx[8,], wsbi=FALSE)
-#' mf <- modSpace(wsbi=FALSE) # figure out set of possible models
-#' mf.sfirst <- c(mf[3], mf[[2]][1], mf[1]) # test subject slope first
-#' mf.ifirst <- c(mf[3], mf[[2]][2], mf[1]) # test items slope first
+#' 
+#' mf.sfirst <- list(min=Resp ~ Cond + (1 | SubjID) + (1 | ItemID),
+#'                  srs=Resp ~ Cond + (1 + Cond | SubjID) + (1 | ItemID),
+#'                  max=Resp ~ Cond + (1 + Cond | SubjID) + (1 + Cond | ItemID))
+#' mf.ifirst <- list(min=Resp ~ Cond + (1 | SubjID) + (1 | ItemID),
+#'                   irs=Resp ~ Cond + (1 | SubjID) + (1 + Cond | ItemID),
+#'                   max=Resp ~ Cond + (1 + Cond | SubjID) + (1 + Cond | ItemID))
 #' 
 #' # forward, subj first
 #' fitstepwise(x8, wsbi=FALSE, mf=mf.sfirst, crit=.05)
@@ -910,7 +927,7 @@ fitstepwise <- function(mcr.data, wsbi, mf, crit=c(.01,.05,seq(.1,.8,.1))) {
 #' \item{chi}{chi-square statistic for the likelihood ratio test (1 df)}
 #' \item{pt}{p-value for the t-statistic (normal distribution)}
 #' \item{pchi}{p-value for the chi-square statistic}
-#' @seealso \code{\link{fitlmer}}, \code{\link{modSpace}},
+#' @seealso \code{\link{fitlmer}}, 
 #' \code{\link{fitstepwise}}, \code{\link{reassembleStepwiseFile}}
 #' @examples
 #' 
@@ -1231,16 +1248,18 @@ mkDf <- function(nsubj=24,    # number of subjects
 #' @examples
 #' 
 #' nmc <- 10 # number of monte carlo simulations
-#' create the parameter matrix
+#' # create the parameter matrix
 #' pmx <- cbind(randParams(genParamRanges(), nmc, 1001), seed=mkSeeds(nmc, 1001))
 #'
 #' # mf contains model formulae for the various models to fit
 #' mf <- list(max=Resp ~ Cond + (1 + Cond | SubjID) + (1 + Cond | ItemID),
-#'             mid=srs=Resp ~ Cond + (1 + Cond | SubjID) + (1 | ItemID),
+#'             mid.srs=Resp ~ Cond + (1 + Cond | SubjID) + (1 | ItemID),
 #'             min=Resp ~ Cond + (1 | SubjID) + (1 | ItemID))
 #' 
 #' mcRun("fitstepwise", mcr.outfile="test.txt",
-#'       mcr.xdatFnc="mkDf", mcr.varying=pmx, mf=mf, wsbi=FALSE)
+#'       mcr.fnArgs=list(wsbi=FALSE, mf=mf),
+#'       mcr.datFn="mkDf", mcr.datArgs=list(wsbi=FALSE),
+#'       mcr.varying=pmx)
 #' 
 #' ff <- reassembleStepwiseFile("test.txt")
 #' ff$forward[,2,]  # alpha-level=.05
