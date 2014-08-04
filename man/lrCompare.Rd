@@ -2,15 +2,34 @@
 \alias{lrCompare}
 \title{Fit mixed-models and obtain p-values from model comparison}
 \usage{
-  lrCompare(mcr.data, lrc.mods, lrc.modCompare, ...)
+  lrCompare(mcr.data, lrc.mods, lrc.modCompare = NULL,
+    lrc.method = "update", ...)
 }
 \arguments{
   \item{mcr.data}{Data to be analyzed}
 
-  \item{lrc.mods}{List of (named) model formulae}
+  \item{lrc.mods}{List containing model formulae.  The
+  first element specifies the 'base' model that will be
+  compared to all subsequent models (specified, in turn, by
+  the remaining elements of the list). The base model is
+  fit by a call to \code{tryFit}, while the remaining
+  models are fit by \code{tryUpdate}, and thus should have
+  formulae as defined in \code{\link{update.formula}}.}
 
-  \item{lrc.modCompare}{List of comparisons to perform
-  (named)}
+  \item{lrc.modCompare}{A vector of mode 'character'.  The
+  first element names the 'base' model listed in
+  \code{lrc.mods}, and the remaining elements name the
+  models to be compared to 'base'.  If NULL (default) then
+  automatically compares \code{lrc.mods[1]} to all
+  subsequent models in \code{lrc.mods}.}
+
+  \item{lrc.method}{Currently, no effect.  This argument
+  has been reserved for future development}
+
+  \item{lrc.cluster}{A processing cluster (typically
+  derived from \code{\link{makeCluster}} in the
+  \code{parallel} package.  NULL means run on a single
+  core.}
 
   \item{...}{Arguments to be passed along to
   \code{\link{tryFit}} (and thus to \code{lmer}).}
@@ -22,39 +41,41 @@
   did not converge), \code{NA} is returned.
 }
 \description{
-  A set of model formula are fed to \code{lrCompare} as
-  named elements in a list.  These models are fit using
-  \code{\link{tryFit}}.  Models are compared as specified
-  in the argument \code{lrc.modCompare} using LLR
-  (likelihood-ratio) tests. This function is useful for
-  performing multiple tests on relatively complex designs
-  (e.g., all main effects and interactions in a factorial
-  design).
+  Compare a set of models to a single 'base' model.  The
+  base model is fit using \code{\link{tryFit}}, and all
+  subsequent models using \code{\link{tryUpdate}}.  Models
+  are compared using the likelihood-ratio test.
+}
+\details{
+  This function is useful for testing multiple IVs in
+  complex designs (e.g., all main effects and interactions
+  in a factorial design).
 }
 \examples{
 dat <- mkDf()
 
 lrCompare(dat,
-          lrc.mods=list(
-              ri=    Resp~Cond+(1|SubjID)+     (1|ItemID),
-              ri.noC= Resp~     (1|SubjID)+     (1|ItemID),
-              max=    Resp~Cond+(1+Cond|SubjID)+(1+Cond|ItemID),
-              max.noC=Resp~     (1+Cond|SubjID)+(1+Cond|ItemID)),
-          lrc.modCompare=list(
-              ri=c("ri",  "ri.noC"),
-              max=c("max","max.noC")),
+          lrc.mods=c(max=Resp~Cond+(1+Cond|SubjID)+(1+Cond|ItemID),
+                     max.noC=.~.-Cond,
+          lrc.modCompare=c("max","max.noC"),
+          REML=FALSE, na.action=na.omit) # pass to tryFit/lmer
+
+lrCompare(dat,  # same effect as above, with modCompare set to NULL
+          lrc.mods=c(max=    Resp~Cond+(1+Cond|SubjID)+(1+Cond|ItemID),
+                     max.noC=Resp~     (1+Cond|SubjID)+(1+Cond|ItemID)),
+          lrc.modCompare=NULL, # compare all to first
           REML=FALSE, na.action=na.omit) # pass to tryFit/lmer
 
 dat <- mkDf.facMixedAB(nitem=24)
 
 lrCompare(dat,
           lrc.mods=list(
-              m=   Y~Ad*Bd+   (1+Bd|SubjID)+(1+Ad*Bd|ItemID),
-              m.A= Y~Bd+Ad:Bd+(1+Bd|SubjID)+(1+Ad*Bd|ItemID),
-              m.B= Y~Ad+Ad:Bd+(1+Bd|SubjID)+(1+Ad*Bd|ItemID),
-              m.AB=Y~Ad+Bd+   (1+Bd|SubjID)+(1+Ad*Bd|ItemID)),
-          lrc.modCompare=list(
-              A=c("m","m.A"), B=c("m","m.B"), AB=c("m","m.AB")),
+              base=Y~Ad*Bd+(1+Bd|SubjID)+(1+Ad*Bd|ItemID),
+              A=.~.-Ad, B=.~.-Bd, AB=.~.-Ad:Bd),
           REML=FALSE, na.action=na.omit)
+}
+\seealso{
+  \code{\link{tryFit}}, \code{\link{tryUpdate}},
+  \code{\link{update}}, \code{\link{update.formula}}
 }
 

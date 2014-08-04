@@ -1,0 +1,30 @@
+\name{tryUpdate}
+\alias{tryUpdate}
+\title{Update model with error-trapping}
+\usage{
+  tryUpdate(tu.formula, tu.model, ...)
+}
+\arguments{
+  \item{tf.formula}{The model formula}
+
+  \item{tf.model}{The data frame}
+
+  \item{...}{Further arguments to be passed onto the
+  function \code{\link{update}}}
+}
+\value{
+  A list with: \item{value}{fitted model object from lmer}
+  \item{converged}{whether or not the model converged}
+}
+\description{
+  Try to update an lmer model, catching any errors/warnings
+}
+\examples{
+mod1 <- tryFit(Resp~Cond+(1+Cond|SubjID)+(1+Cond|ItemID), mkDf())
+mod2 <- tryUpdate(.~.-Cond, mod1)
+lrTest(mod1, mod2)
+}
+\seealso{
+  \code{\link{tryFit}}
+}
+

@@ -14,12 +14,10 @@
 }
 \details{
   \tabular{ll}{ Package: \tab simgen\cr Type: \tab
-  Package\cr Version: \tab 1.5\cr Date: \tab 2012-02-20\cr
+  Package\cr Version: \tab 1.6\cr Date: \tab 2013-06-20\cr
   License: \tab GPL (>= 2)\cr LazyLoad: \tab yes\cr } To
-  get started, see \code{\link{createParamMx}},
-  \code{\link{mkDf}}, and \code{\link{mcRun}}.
+  get started, see \code{\link{mkDf}}, and \code{\link{mcRun}}.
 }
 \author{
   Dale J. Barr <dale.barr@glasgow.ac.uk>
 }
-

@@ -17,13 +17,14 @@
   \item{converged}{whether or not the model converged}
 }
 \description{
-  Try to fit an lmer model, catching any errors/warnings
+  Try to fit an lmer model, catching any warnings about
+  convergence
 }
 \examples{
 # random intercepts only
 ff <- tryFit(Resp~Cond + (1+Cond|SubjID)+(1+Cond|ItemID), mkDf())
 }
 \seealso{
-  \code{\link{fitlmer}}
+  \code{\link{tryUpdate}}
 }
 

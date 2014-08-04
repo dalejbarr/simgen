@@ -1,0 +1,32 @@
+\name{lrTest}
+\alias{lrTest}
+\title{Likelihood-Ratio Test for Fitted mer Objects}
+\usage{
+  lrTest(m1, m2)
+}
+\arguments{
+  \item{m1}{Model to be compared (list object from
+  \code{\link{tryFit}})}
+
+  \item{m2}{Model to be compared (list object from
+  \code{\link{tryFit}})}
+}
+\value{
+  A list with: \item{Number of Estimated Parameters}{A
+  matrix;} \item{Likelihood-Ratio Test}{Output from the
+  test, or \code{NA} if either or both models did not
+  converge.}
+}
+\description{
+  Likelihood-Ratio Test for Fitted mer Objects
+}
+\examples{
+dat <- mkDf()
+m1 <- tryFit(Resp~Cond+(1+Cond|SubjID)+(1+Cond|ItemID), dat, REML=FALSE)
+m2 <- tryFit(Resp~(1+Cond|SubjID)+(1+Cond|ItemID), dat, REML=FALSE)
+lrTest(m1, m2)
+}
+\seealso{
+  \code{\link{tryFit}}
+}
+
