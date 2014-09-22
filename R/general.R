@@ -14,9 +14,6 @@
 #' # random intercepts only
 #' ff <- tryFit(Resp~Cond + (1+Cond|SubjID)+(1+Cond|ItemID), mkDf())
 #'
-#' @importFrom lme4 lmer
-#' @importClassesFrom lme4 mer
-#' @importMethodsFrom lme4 summary show
 #' @export tryFit
 tryFit <- function(tf.formula, tf.data, ...) {
     converged <- TRUE
@@ -26,7 +23,7 @@ tryFit <- function(tf.formula, tf.data, ...) {
     }
     arg.list <- c(list(formula=tf.formula, data=tf.data), list(...))
     list(value=withCallingHandlers(tryCatch(
-             do.call(lme4:::lmer, arg.list),
+             do.call(lmer, arg.list),
              error=function(e) e),
              warning=w.handler),
          converged=converged)
@@ -49,9 +46,6 @@ tryFit <- function(tf.formula, tf.data, ...) {
 #' mod2 <- tryUpdate(.~.-Cond, mod1)
 #' lrTest(mod1, mod2)
 #'
-#' @importFrom lme4 lmer
-#' @importClassesFrom lme4 mer
-#' @importMethodsFrom lme4 summary show update
 #' @export tryUpdate
 tryUpdate <- function(tu.formula, tu.model, ...) {
     converged <- TRUE
@@ -171,7 +165,7 @@ mkSeeds <- function(nmc=1000, firstseed=NULL) {
 }
 
 
-#' Matrix for Deviation-Coded Predictors
+#' Make Matrix for Deviation-Coded Predictors
 #'
 #' Return a matrix of deviation-coded predictors (analogous to
 #' \code{\link{contr.sum}}).
@@ -189,14 +183,13 @@ contr.deviation <- function(n) {
 
 
 # NOT EXPORTED!
-#' @importFrom lme4 lmer
 getLmer.pValue <- function(m1,m2) {
     pval <- c(chisq=NA, df=NA, p=NA)
     if (m1$converged && m2$converged) {
-        df1 <- length(lme4::fixef(m1$value))+sum(unlist(lapply(lme4::VarCorr(m1$value), function(x) {dim(x)[1]})))
-        df2 <- length(lme4::fixef(m2$value))+sum(unlist(lapply(lme4::VarCorr(m2$value), function(x) {dim(x)[1]})))
+        df1 <- length(fixef(m1$value))+sum(unlist(lapply(VarCorr(m1$value), function(x) {dim(x)[1]})))
+        df2 <- length(fixef(m2$value))+sum(unlist(lapply(VarCorr(m2$value), function(x) {dim(x)[1]})))
         pval["df"] <- abs(df1-df2)
-        pval["chisq"] <- abs((-2*lme4::logLik(m1$value))-(-2*lme4::logLik(m2$value)))
+        pval["chisq"] <- abs((-2*logLik(m1$value))-(-2*logLik(m2$value)))
         pval["p"] <- as.numeric(pchisq(pval["chisq"], pval["df"], lower.tail=FALSE))
     } else {}
     return(pval)
@@ -230,8 +223,8 @@ lrTest <- function(m1, m2) {
     colnames(df.mx) <- c("random","fixed","link","total")
     # get estimated log likelihood (deviance)
     if (m1$converged && m2$converged) {
-        dv.m1 <- c(m1=-2*lme4::logLik(m1v),
-                   m2=-2*lme4::logLik(m2v))
+        dv.m1 <- c(m1=-2*logLik(m1v),
+                   m2=-2*logLik(m2v))
         dv.m1 <- c(dv.m1, chisq=as.numeric(abs(dv.m1["m2"]-dv.m1["m1"])))
         diff.df <- abs(df.mx["m2","total"]-df.mx["m1","total"])
         dv.m1 <- c(dv.m1, df=diff.df)
@@ -248,7 +241,7 @@ lrTest <- function(m1, m2) {
 .getLmer.chisq <- function(m1,m2) {
     pval <- NA
     if (m1$converged && m2$converged) {
-        chisq.val <- (-2*lme4::logLik(m1$value))-(-2*lme4::logLik(m2$value))
+        chisq.val <- (-2*logLik(m1$value))-(-2*logLik(m2$value))
         pval <- as.numeric(pchisq(abs(chisq.val), 1, lower.tail=FALSE))
     } else {}
     return(pval)
@@ -312,7 +305,6 @@ lrTest <- function(m1, m2) {
 #'               A=.~.-Ad, B=.~.-Bd, AB=.~.-Ad:Bd),
 #'           REML=FALSE, na.action=na.omit)
 #' @export lrCompare
-#' @importFrom parallel parLapplyLB
 lrCompare <- function(mcr.data, lrc.mods, lrc.modCompare=NULL, lrc.method="update",
                       lrc.cluster=NULL, ...) {
     if (length(lrc.mods) < 2) {
@@ -337,7 +329,7 @@ lrCompare <- function(mcr.data, lrc.mods, lrc.modCompare=NULL, lrc.method="updat
         modres <- lapply(lrc.mods[-1], tryUpdate, tu.model=base.mod)
     } else {
         initializeCluster(lrc.cluster)
-        modres <- parallel:::parLapplyLB(lrc.cluster, lrc.mods[-1], tryUpdate, tu.model=base.mod)
+        modres <- parallel::parLapplyLB(lrc.cluster, lrc.mods[-1], tryUpdate, tu.model=base.mod)
     }
     ff <- do.call("rbind", lapply(lrc.modCompare[-1], function(y) {
         lrTest(base.mod, modres[[y]])[["Likelihood-Ratio Test"]]
@@ -525,8 +517,7 @@ formVCovMx <- function(vars, corrs) {
 #' @param cl cluster object (created e.g. by
 #' \code{\link{makeCluster}}; see package parallel for details.
 #' 
-#' @importFrom parallel clusterCall
 #' @export initializeCluster
 initializeCluster <- function(cl) {
-    invisible(clusterCall(cl, function(x) {library(simgen)}))
+    invisible(parallel::clusterCall(cl, function(x) {library(simgen)}))
 }
