@@ -447,13 +447,18 @@ findValidVCovParams <- function(vars, corrs=as.list(rep(0,sum(1:(length(vars)-1)
     ntries <- 0
     done <- FALSE
     # use brute force to find a definite positive matrix
-    while (!done && (ntries < maxtries)) {
+    while (!done) {
+        if (!is.null(maxtries)) {
+            if (ntries >= maxtries) {
+                stop("'maxtries' reached without finding a positive-definite matrix")
+            } else {}
+        } else {}
         parms <- randParams(c(vars, corrs))
         vcov.mx <- formVCovMx(parms[1:length(vars)], parms[-(1:length(vars))])
        # test whether the matrix is positive-definite
        # if so, all eigenvalues should be positive
         evals <- eigen(vcov.mx, TRUE)$values 
-        if(sum(evals>0)==dim(vcov.mx)[1]) {
+        if(!any(evals < 0)) {
             done <- TRUE
         } else {}
         ntries <- ntries + 1
