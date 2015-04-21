@@ -71,7 +71,6 @@
 #' mcr.reportInt=5) # report progress every 5 runs
 #' 
 #' @export mcRun
-#' @importFrom parallel clusterExport parLapplyLB
 mcRun <- function(mcr.fn,  # name of function (or expression) to be applied
                   mcr.fnArgs=NULL, # list of arguments to be passed to the model fitting function
                   mcr.cluster=NULL, # parallel cluster; NULL for single cluster
@@ -234,7 +233,7 @@ mcRun <- function(mcr.fn,  # name of function (or expression) to be applied
 
     # export the data function to cluster
     if (!is.null(mcr.cluster)) {
-        parallel:::clusterExport(mcr.cluster, c(mcr.datFn, mcr.fn))
+        parallel::clusterExport(mcr.cluster, c(mcr.datFn, mcr.fn))
     } else {}
     
     # ready to go, start running

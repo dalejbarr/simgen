@@ -22,12 +22,11 @@
   return(result)
 }
 
-#' @importFrom lme4 VarCorr fixef
 .modCompare <- function(mods) {
   getDf <- function(mm) {
-    1+sum(c(unlist(lapply(lme4:::VarCorr(mm), function(y) {sum(1:dim(y)[1])})), length(lme4::fixef(mm))))
+    1+sum(c(unlist(lapply(VarCorr(mm), function(y) {sum(1:dim(y)[1])})), length(fixef(mm))))
   }
-  mod.inf <- rbind(unlist(lapply(mods, lme4:::deviance)),
+  mod.inf <- rbind(unlist(lapply(mods, deviance)),
                    unlist(lapply(mods, getDf)))
                                         # compare all models sequentially
   ff <- lapply(2:ncol(mod.inf), function(x) {
@@ -43,7 +42,6 @@
   return(cmp.mx)
 }
 
-#' @importMethodsFrom lme4 deviance
 .stepwiseFit <- function(mf, mcr.data, crit=c(.01,.05,seq(.1,.8,.1))) {
                                         # mf: list of model formulae in order of testing
                                         # xd: the data frame
@@ -131,8 +129,6 @@
   return(gg)
 }
 
-#' @importFrom Matrix diag
-#' @importFrom lme4 vcov fixef
 .modInfo <- function(mod, xd, wsbi) {
                                         # do comparison model
   mf2 <- .modSpace(wsbi)[[names(mod)]]
@@ -154,30 +150,26 @@
     chi.p <- NA
   }
   m2 <- mod[[1]]
-  t.obs <- (lme4:::fixef(m2)[2])/(sqrt(Matrix:::diag(lme4:::vcov(m2)))[2])
+  t.obs <- (fixef(m2)[2])/(sqrt(Matrix::diag(vcov(m2)))[2])
   v1 <- c(fm=.mod2Code(mod), t.obs[1],
           chi.obs,
           2*(1-pnorm(abs(t.obs))),
           chi.p,
-          eff=lme4:::fixef(m2)[2])
+          eff=fixef(m2)[2])
   names(v1) <- c("fm", "t","chi","pt","pchi","esteff")
   return(v1)
 }
 
 .getLmer.pValue2 <- function(m1,m2) {
     pval <- c(chisq=NA, df=NA, p=NA)
-    df1 <- length(lme4::fixef(m1))+sum(unlist(lapply(lme4::VarCorr(m1), function(x) {dim(x)[1]})))
-    df2 <- length(lme4::fixef(m2))+sum(unlist(lapply(lme4::VarCorr(m2), function(x) {dim(x)[1]})))
+    df1 <- length(fixef(m1))+sum(unlist(lapply(VarCorr(m1), function(x) {dim(x)[1]})))
+    df2 <- length(fixef(m2))+sum(unlist(lapply(VarCorr(m2), function(x) {dim(x)[1]})))
     pval["df"] <- abs(df1-df2)
-    pval["chisq"] <- abs((-2*lme4::logLik(m1))-(-2*lme4::logLik(m2)))
+    pval["chisq"] <- abs((-2*logLik(m1))-(-2*logLik(m2)))
     pval["p"] <- as.numeric(pchisq(pval["chisq"], pval["df"], lower.tail=FALSE))
     return(pval)    
 }
 
-#' @importFrom Matrix diag
-#' @importFrom lme4 vcov fixef anova
-#' @importClassesFrom lme4 mer
-#' @importMethodsFrom lme4 anova
 .modInfo1 <- function(mf2, xd, mod) {
   mf3 <- as.formula(paste(mf2[2], "~", mf2[3], "-Cond", sep=""))
   if ( (mod2 <- .tryFit.default(mf3, xd))$converged ) {
@@ -188,12 +180,12 @@
     chi.obs <- NA
     chi.p <- NA
   }
-  t.obs <- (lme4:::fixef(mod[[1]])[2])/(sqrt(Matrix:::diag(lme4:::vcov(mod[[1]])))[2])
+  t.obs <- (fixef(mod[[1]])[2])/(sqrt(Matrix::diag(vcov(mod[[1]])))[2])
   v1 <- c(fm=mod$converged, t.obs[1],
           chi.obs,
           2*(1-pnorm(abs(t.obs))),
           chi.p,
-          eff=lme4:::fixef(mod[[1]])[2])
+          eff=fixef(mod[[1]])[2])
   names(v1) <- c("fm", "t","chi","pt","pchi","esteff")
   return(v1)
 }
@@ -481,40 +473,33 @@ fitanova <- function(mcr.data, wsbi) {
 #' \code{\link{fitanova}}.
 #' @param nmcmc Number of Markov-Chain Monte Carlo simulations (default =
 #' 10000).
-#' @return A single element vector with the mcmc p-value.
-#' @note This function ONLY fits random intercept models.
+#' @return NULL
+#' @note This function no longer works and will throw an error, as the \code{mcmcsamp} function was removed starting with \code{lme4} package 1.0; see \code{\link[lme4]{mcmcsamp}} for details.
 #' @seealso \code{\link{fitlmer}}
-#' @examples
-#' 
-#' nmc <- 10
-#' pmx <- cbind(randParams(genParamRanges(), nmc, 1001), seed=mkSeeds(nmc, 1001))
-#' 
-#' # between-items dataset
-#' x.bi <- mkDf(nsubj=24, nitem=24, mcr.params=pmx[1,], wsbi=TRUE)
-#' 
-#' fitlmer.mcmc(x.bi, wsbi=FALSE, nmcmc=1000) # maximal
 #' 
 #' @export fitlmer.mcmc
 fitlmer.mcmc <- function(mcr.data, wsbi, nmcmc=10000) {
-  xd <- mcr.data
-  p.mcmc <- NA
-  library(lme4, quietly=TRUE)
-  mf <- Resp ~ Cond + (1 | SubjID) + (1 | ItemID)
-  xd.lmer <- tryCatch(lmer(mf,
-                           family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
-                      warning = function(w) {return (NULL)},
-                      error = function(e) {return (NULL)})
-  mcmc <- try(lme4::mcmcsamp(xd.lmer, n = nmcmc, silent=TRUE))
-  if (!is(mcmc, "try-error")) {
-    mcmcfixef <- t(mcmc@fixef)
-    nr <- nrow(mcmcfixef)
-    prop <- colSums(mcmcfixef > 0)/nr
-    ans <- 2 * pmax(0.5/nr, pmin(prop, 1 - prop))
-    names(ans) <- colnames(mcmcfixef)
-    p.mcmc <- ans["Cond"]
-  } else {}
-  names(p.mcmc) <- "pmcmc"
-  return(p.mcmc)
+  #xd <- mcr.data
+  #p.mcmc <- NA
+  #library(lme4, quietly=TRUE)
+  #mf <- Resp ~ Cond + (1 | SubjID) + (1 | ItemID)
+  #xd.lmer <- tryCatch(lmer(mf,
+  #                         family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
+  #                    warning = function(w) {return (NULL)},
+  #                    error = function(e) {return (NULL)})
+  #mcmc <- try(mcmcsamp(xd.lmer, n = nmcmc, silent=TRUE))
+  #if (!is(mcmc, "try-error")) {
+  #  mcmcfixef <- t(mcmc@fixef)
+  #  nr <- nrow(mcmcfixef)
+  #  prop <- colSums(mcmcfixef > 0)/nr
+  #  ans <- 2 * pmax(0.5/nr, pmin(prop, 1 - prop))
+  #  names(ans) <- colnames(mcmcfixef)
+  #  p.mcmc <- ans["Cond"]
+  #} else {}
+  #names(p.mcmc) <- "pmcmc"
+  #return(p.mcmc)
+  stop("function 'mcmcsamp' in 'lme4' was removed as of release 1.0")
+  return(NULL)
 }
 
 
@@ -576,11 +561,10 @@ fitlmer <- function(mcr.data, ri.only=FALSE, wsbi=FALSE) {
                                         # 2 : dropped two slopes
                                         # 3 : didn't converge
                                         # 4 : comparison model without cond didn't converge
-  library(lme4, quietly=TRUE)
   if (ri.only) {
     mf <- Resp ~ Cond + (1 | SubjID) + (1 | ItemID)
     xd.lmer <- tryCatch(lmer(mf,
-                             family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
+                             data=xd, na.action=na.omit, REML=FALSE),
                         warning = function(w) {return (NULL)},
                         error = function(e) {return (NULL)})
   } else {
@@ -591,7 +575,7 @@ fitlmer <- function(mcr.data, ri.only=FALSE, wsbi=FALSE) {
       mf <- Resp ~ Cond + (1 + Cond | SubjID) + (1 | ItemID)
     }
     xd.lmer <- tryCatch(lmer(mf,
-                             family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
+                             data=xd, na.action=na.omit, REML=FALSE),
                         warning = function(w) {return (NULL)},
                         error = function(e) {return (NULL)})
     if (is.null(xd.lmer)) {
@@ -599,30 +583,30 @@ fitlmer <- function(mcr.data, ri.only=FALSE, wsbi=FALSE) {
         fullModel <- 1
         mf <- Resp ~ Cond + (1 | SubjID) + (1 | ItemID)
         xd.lmer <- tryCatch(lmer(mf,
-                                 family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
+                                 data=xd, na.action=na.omit, REML=FALSE),
                             warning = function(w) {return (NULL)},
                             error = function(e) {return (NULL)})        
       } else {
                                         # turn off warnings and get partially converged model
         mywarn <- getOption("warn")
         options(warn=-1)
-        xd.lmer.1 <- lmer(mf, family=gaussian, data=xd, na.action=na.omit, REML=FALSE)
+        xd.lmer.1 <- lmer(mf, data=xd, na.action=na.omit, REML=FALSE)
         options(warn=mywarn)
         
                                         # choose one of the two random slopes to drop
-        if (lme4:::VarCorr(xd.lmer.1)$SubjID[2,2] > lme4:::VarCorr(xd.lmer.1)$ItemID[2,2]) {
+        if (VarCorr(xd.lmer.1)$SubjID[2,2] > VarCorr(xd.lmer.1)$ItemID[2,2]) {
                                         # drop Item random slope
           fullModel <- 1
           mf <- Resp ~ Cond + (1 + Cond | SubjID) + (1 | ItemID)
           xd.lmer <- tryCatch(lmer(mf,
-                                   family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
+                                   data=xd, na.action=na.omit, REML=FALSE),
                               warning = function(w) {return (NULL)},
                               error = function(e) {return (NULL)})
           if (is.null(xd.lmer)) {
             fullModel <- 2
             mf <- Resp ~ Cond + (1 | SubjID) + (1 | ItemID)          
             xd.lmer <- tryCatch(lmer(mf,
-                                     family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
+                                     data=xd, na.action=na.omit, REML=FALSE),
                                 warning = function(w) {return (NULL)},
                                 error = function(e) {return (NULL)})
           } else {}
@@ -631,7 +615,7 @@ fitlmer <- function(mcr.data, ri.only=FALSE, wsbi=FALSE) {
           fullModel <- 1
           mf <- Resp ~ Cond + (1 | SubjID) + (1 + Cond | ItemID)
           xd.lmer <- tryCatch(lmer(mf,
-                                   family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
+                                   data=xd, na.action=na.omit, REML=FALSE),
                               warning = function(w) {return (NULL)},
                               error = function(e) {return (NULL)})
           if (is.null(xd.lmer)) {
@@ -639,7 +623,7 @@ fitlmer <- function(mcr.data, ri.only=FALSE, wsbi=FALSE) {
                                         # drop both random slopes
             mf <- Resp ~ Cond + (1 | SubjID) + (1 | ItemID)          
             xd.lmer <- tryCatch(lmer(mf,
-                                     family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
+                                     data=xd, na.action=na.omit, REML=FALSE),
                                 warning = function(w) {return (NULL)},
                                 error = function(e) {return (NULL)})
           } else {}
@@ -652,7 +636,7 @@ fitlmer <- function(mcr.data, ri.only=FALSE, wsbi=FALSE) {
   } else {}
   mf2 <- as.formula(paste(deparse(mf),"-Cond"))
   xd.lmer.2 <- tryCatch(lmer(mf2,
-                             family=gaussian, data=xd, na.action=na.omit, REML=FALSE),
+                             data=xd, na.action=na.omit, REML=FALSE),
                         warning=function(w) {return(NULL)},
                         error=function(e) {return(NULL)})
   if (is.null(xd.lmer.2)) {
@@ -660,11 +644,11 @@ fitlmer <- function(mcr.data, ri.only=FALSE, wsbi=FALSE) {
     ts.chi <- NA
     p.chi <- NA
   } else {
-    ts.chi <- lme4:::deviance(xd.lmer.2)-lme4:::deviance(xd.lmer)
+    ts.chi <- deviance(xd.lmer.2)-deviance(xd.lmer)
     p.chi <- pchisq(abs(ts.chi), 1, lower.tail=F)
   }
   
-  ts.tval <- abs(lme4:::fixef(xd.lmer)[2]/sqrt(Matrix:::diag(lme4:::vcov(xd.lmer))[2]))
+  ts.tval <- abs(fixef(xd.lmer)[2]/sqrt(Matrix::diag(vcov(xd.lmer))[2]))
   p.t <- 2*(1-pnorm(ts.tval))
   v1 <- c(fm=fullModel, t=ts.tval, chi=ts.chi, pt=p.t, pchi=p.chi)
   names(v1) <- c("fm", "t","chi","pt","pchi")
@@ -780,8 +764,8 @@ fitnocorr <- function(mcr.data, wsbi=FALSE) {
 #' (FALSE).
 #' @param nmcmc Number of Markov-Chain Monte Carlo simulations (default =
 #' 10000).
-#' @return A single element vector with the mcmc p-value.
-#' @note This function ONLY fits models with independent random intercepts and
+#' @return NULL
+#' @note This function no longer works and will throw an error, as the \code{mcmcsamp} function was removed starting with \code{lme4} package 1.0; see \code{\link[lme4]{mcmcsamp}} for details.
 #' slopes.
 #' @seealso \code{\link{fitnocorr}}
 #' @examples
@@ -798,30 +782,29 @@ fitnocorr <- function(mcr.data, wsbi=FALSE) {
 #' 
 #' @export fitnocorr.mcmc
 fitnocorr.mcmc <- function(mcr.data, wsbi=FALSE, nmcmc=10000) {
-  xd <- mcr.data
-  p.mcmc <- NA
-  library(lme4, quietly=TRUE)
-  if (wsbi) {
-    mf <- Resp ~ Cond + (1 | SubjID) + (0 + Cond | SubjID) + (1 | ItemID)
-  } else {
-    mf <- Resp ~ Cond + (1 | SubjID) + (0 + Cond | SubjID) + (1 | ItemID) + (0 + Cond | ItemID)
-  }
-  mod <- .tryFit.default(mf, xd)
-  if (mod$converged) {
-    mcmc <- try(lme4::mcmcsamp(mod$value, n = nmcmc, silent=TRUE))
-    mcmcfixef <- t(mcmc@fixef)
-    nr <- nrow(mcmcfixef)
-    prop <- colSums(mcmcfixef > 0)/nr
-    ans <- 2 * pmax(0.5/nr, pmin(prop, 1 - prop))
-    names(ans) <- colnames(mcmcfixef)
-    p.mcmc <- ans["Cond"]    
-  } else {    
-  }
-  names(p.mcmc) <- "pmcmc"
-  return(p.mcmc)
+#  xd <- mcr.data
+#  p.mcmc <- NA
+#  if (wsbi) {
+#    mf <- Resp ~ Cond + (1 | SubjID) + (0 + Cond | SubjID) + (1 | ItemID)
+#  } else {
+#    mf <- Resp ~ Cond + (1 | SubjID) + (0 + Cond | SubjID) + (1 | ItemID) + (0 + Cond | ItemID)
+#  }
+#  mod <- .tryFit.default(mf, xd)
+#  if (mod$converged) {
+#    mcmc <- try(mcmcsamp(mod$value, n = nmcmc, silent=TRUE))
+#    mcmcfixef <- t(mcmc@fixef)
+#    nr <- nrow(mcmcfixef)
+#    prop <- colSums(mcmcfixef > 0)/nr
+#    ans <- 2 * pmax(0.5/nr, pmin(prop, 1 - prop))
+#    names(ans) <- colnames(mcmcfixef)
+#    p.mcmc <- ans["Cond"]    
+#  } else {    
+#  }
+#  names(p.mcmc) <- "pmcmc"
+#  return(p.mcmc)
+    stop("function 'mcmcsamp' in 'lme4' was removed as of release 1.0")
+    return(NULL)
 }
-
-
 
 #' Fit lmer model using model selection
 #' 
@@ -945,8 +928,6 @@ fitstepwise <- function(mcr.data, wsbi, mf, crit=c(.01,.05,seq(.1,.8,.1))) {
 #' @export fitstepwise.bestpath
 fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1))) {
   xd <- mcr.data
-  library(lme4, quietly=TRUE)
-
   mf <- .modSpace(FALSE)
   mf <- c(mf$min, mf$mid$srs, mf$mid$irs, mf$max)
   names(mf) <- c("min","srs","irs","max")
@@ -970,8 +951,8 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
           mf <- mf[c(names(cvg.lx)[cvg.lx], "max")] # the min plus the converged
         } else { # the two "mid" models converged
                                         # pick based on which one has larger SD
-          srs.sd <- attr(lme4:::VarCorr(mods[["srs"]]$value)$SubjID, "stddev")[2]
-          irs.sd <- attr(lme4:::VarCorr(mods[["irs"]]$value)$ItemID, "stddev")[2]
+          srs.sd <- attr(VarCorr(mods[["srs"]]$value)$SubjID, "stddev")[2]
+          irs.sd <- attr(VarCorr(mods[["irs"]]$value)$ItemID, "stddev")[2]
           if (srs.sd > irs.sd) {
             mf <- mf[c("srs","max")] #c(mf$mid$srs, mf$max)
           } else {
@@ -1007,8 +988,8 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
           mf <- mf[c("min", names(cvg.lx)[cvg.lx])] # the min plus the converged
         } else { # the two "mid" models converged
                                         # pick based on which one has smaller SD
-          srs.sd <- attr(lme4:::VarCorr(mods[["srs"]]$value)$SubjID, "stddev")[2]
-          irs.sd <- attr(lme4:::VarCorr(mods[["irs"]]$value)$ItemID, "stddev")[2]
+          srs.sd <- attr(VarCorr(mods[["srs"]]$value)$SubjID, "stddev")[2]
+          irs.sd <- attr(VarCorr(mods[["irs"]]$value)$ItemID, "stddev")[2]
           if (srs.sd < irs.sd) {
             mf <- mf[c("min","srs")] # drop out the larger one (mid.srs has no item slope)
           } else {
@@ -1091,7 +1072,6 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
 #' 
 #' 
 #' @export mkDf
-#' @importFrom MASS mvrnorm
 mkDf <- function(nsubj=24,    # number of subjects
                   nitem=24,    # number of items
                   wsbi=FALSE,     # if design is between items (TRUE) or within (FALSE)
