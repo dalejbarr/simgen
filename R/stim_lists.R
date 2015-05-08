@@ -12,6 +12,8 @@
 #' are administered between items
 #' @param n_item desired number of stimulus items; if \code{NULL},
 #' will generate lists with the minimum possible number
+#' @param n_rep number of repetitions of each stimulus item for each
+#' participant (default 1)
 #' @param as_one boolean (default \code{TRUE}) specifying whether the
 #' presentation lists are to be returned as a single data frame or as
 #' elements in a list object
@@ -24,12 +26,16 @@
 #' stim_lists(c(A = 2, B = 2)) # 2x2 within-subjects within-item
 #' 
 #' stim_lists(c(A = 2, B = 2), n_item = 16) # same but w/more items
-#' 
+#'
+#' stim_lists(c(A = 2, B = 2), n_item = 16, n_rep = 3)
+#'
+#' # mixed by subject, fully within by item
 #' stim_lists(list(group = c("adult", "child"),
 #'                 task = c("easy", "hard")),
 #'            between_subj = "group",
-#'            n_item = 20)
+#'            n_item = 12)
 #'
+#' # mixed by subject, mixed by item
 #' stim_lists(c(A = 2, B = 2),
 #'            between_subj = "A",
 #'            between_item = "B")
@@ -38,6 +44,7 @@ stim_lists <- function(ivs,
                        between_subj = c(),
                        between_item = c(),
                        n_item = NULL,
+                       n_rep = 1,
                        as_one = TRUE) {
     fac_combine_levels <- function(vars, iv_list, dframe = TRUE) {
         row_indices <- rev(do.call("expand.grid",
@@ -154,6 +161,13 @@ stim_lists <- function(ivs,
     },
                      it_lists, bsbi_lists, SIMPLIFY = FALSE)
 
+    if (n_rep > 1) {
+        plists <- lapply(plists, function(x) {
+                             cbind(n_rep = rep(seq_len(n_rep), each = nrow(x)),
+                                   x[rep(seq_len(nrow(x)), n_rep), , drop = FALSE])
+                         })
+    } else {}
+    
     if (as_one) {
         res <- mapply(function(x, y) {
             cbind(list_id = x, y)

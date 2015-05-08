@@ -5,7 +5,7 @@
 \title{Generate stimulus presentation lists}
 \usage{
 stim_lists(ivs, between_subj = c(), between_item = c(), n_item = NULL,
-  as_one = TRUE)
+  n_rep = 1, as_one = TRUE)
 }
 \arguments{
 \item{ivs}{named list of independent variables (IVs) with each list
@@ -20,6 +20,9 @@ are administered between items}
 
 \item{n_item}{desired number of stimulus items; if \code{NULL},
 will generate lists with the minimum possible number}
+
+\item{n_rep}{number of repetitions of each stimulus item for each
+participant (default 1)}
 
 \item{as_one}{boolean (default \code{TRUE}) specifying whether the
 presentation lists are to be returned as a single data frame or as
@@ -39,11 +42,15 @@ stim_lists(c(A = 2, B = 2)) # 2x2 within-subjects within-item
 
 stim_lists(c(A = 2, B = 2), n_item = 16) # same but w/more items
 
+stim_lists(c(A = 2, B = 2), n_item = 16, n_rep = 3)
+
+# mixed by subject, fully within by item
 stim_lists(list(group = c("adult", "child"),
                 task = c("easy", "hard")),
            between_subj = "group",
-           n_item = 20)
+           n_item = 12)
 
+# mixed by subject, mixed by item
 stim_lists(c(A = 2, B = 2),
            between_subj = "A",
            between_item = "B")
