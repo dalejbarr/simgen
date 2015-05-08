@@ -28,7 +28,7 @@
 #' stim_lists(list(group = c("adult", "child"),
 #'                 task = c("easy", "hard")),
 #'            between_subj = "group",
-#'            nitem = 20)
+#'            n_item = 20)
 #'
 #' stim_lists(c(A = 2, B = 2),
 #'            between_subj = "A",
