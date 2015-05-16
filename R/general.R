@@ -165,22 +165,30 @@ mkSeeds <- function(nmc=1000, firstseed=NULL) {
 }
 
 
-#' Make Matrix for Deviation-Coded Predictors
+#' Deviation-Coded Contrast Matrices
 #'
-#' Return a matrix of deviation-coded predictors (analogous to
-#' \code{\link{contr.sum}}).
+#' Return a matrix of deviation-coded contrasts.
 #'
-#' @param n A vector of levels for a factor, or the number of levels.
-#' @export contr.deviation
-contr.deviation <- function(n) {
-    if (length(n)<=1L) {
-        if (is.numeric(n) && length(n) == 1L && n > 1L)
+#' @param n a vector of levels for a factor, or the number of levels.
+#' @param base an integer specifying which group is considered the
+#' baseline group. Ignored if ‘contrasts’ is ‘FALSE’.
+#' @param contrasts a logical indicating whether contrasts should be computed.
+#'
+#' @export 
+contr.dev <- function(n, base = 1, contrasts = TRUE) {
+    if (length(n) <= 1L) {
+        if (is.numeric(n) && (length(n) == 1L) && (n > 1L))
             levels <- seq_len(n)
         else stop("not enough degrees of freedom to define contrasts")
-    } else {}
-    apply(contr.treatment(n), 2, function(x) {x-mean(x)})
+    } else {
+        levels <- n
+    }
+    #mx <- apply(contr.treatment(n), 2, function(x) {x-mean(x)})
+    ctreat <- contr.treatment(levels, base, contrasts)
+    mx <- apply(ctreat, 2, scale, scale = FALSE)
+    dimnames(mx) <- dimnames(ctreat)
+    mx    
 }
-
 
 # NOT EXPORTED!
 getLmer.pValue <- function(m1,m2) {
