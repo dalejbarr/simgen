@@ -1,25 +1,27 @@
-#' Derive names for a given design
+#' Calculate marginal and cell counts for factorially-designed data
 #'
-#' Derive names of predictor terms for a given design
-#' 
-#' @param ivs named list of independent variables (IVs) with each list
-#' element a vector giving the levels of that IV, or a single number
-#' stating the number of desired levels
-#' @param between_subj character vector with names of IVs whose
-#' levels are administered between subjects
-#' @param between_item charater vector with names of IVs whose levels
-#' are administered between items
-#' @return A vector of term names
-#' @seealso \code{\link{stim_lists}}
+#' @param iv_names Names of independent variables in data.frame given by \code{dat}.
+#' @param dat A data frame
+#' @param unit_names Names of the fields containing sampling units (subjects, items)
+#' @return a list, the elements of which have the marginal/cell counts for each factor in the design
 #' @export
-term_names <- function(ivs, between_subj = c(), between_item = c()) {
-    plists <- stim_lists(ivs, between_subj, between_item)
-    cont <- as.list(rep("contr.dev", length(ivs)))
-    names(cont) <- names(ivs)
-    mmx <- model.matrix(as.formula(paste0("~", paste(names(ivs), collapse = "*"))),
-                        plists,
-                        contrasts.arg = cont)
-    colnames(mmx)
+fac_counts <- function(iv_names, dat, unit_names = c("subj_id", "item_id")) {    
+    fac_info <- attr(terms(as.formula(paste0("~", paste(iv_names, collapse = "*")))), "factors")
+    rfx <- sapply(unit_names, function(this_unit) {
+        ## figure out how many things are replicated by unit, how many times
+        rep_mx <- xtabs(paste0("~", paste(iv_names, collapse = "+"), "+", this_unit), dat)
+        lvec <- apply(fac_info, 2, function(x) {
+            ix <- seq_along(x)[as.logical(x)]
+            ## create margin table
+            marg_mx <- apply(rep_mx, c(ix, length(dim(rep_mx))), sum)
+            mmx <- apply(marg_mx, length(dim(marg_mx)), c)
+            ## as.logical(prod(apply(mmx, 2, function(xx) all(xx > 1))))
+        })
+        ## res <- fac_info[, lvec, drop = FALSE]
+        ## keep_term <- rep(TRUE, ncol(res))
+        ## try to simplify the formula
+    }, simplify = FALSE)
+    return(rfx)
 }
 
 #' Generate numerical deviation-coded predictors
@@ -44,12 +46,17 @@ with_dev_pred <- function(dat, iv_names = NULL) {
     cbind(dat, model.matrix(mform, dat, contrasts.arg = cont)[, -1])
 }
 
+check_design_args <- function(design_args) {
+    ## TODO check integrity of design args
+    return(TRUE)
+}
+
 #' Generate trial lists from a stimulus presentation lists
 #'
 #' Merge stimulus presentation lists with subject data to create a
 #' trial list.
 #'
-#' @param sp_lists Stimulus presentation lists (see \code{\link{stim_lists()}}).
+#' @param design_args Stimulus presentation lists (see \code{\link{stim_lists()}}).
 #' @param subjects One of the following three: (1) an integer
 #' specifying the desired number of subjects (must be a multiple of
 #' number of stimulus lists); (2) a data frame with assignment
@@ -60,7 +67,9 @@ with_dev_pred <- function(dat, iv_names = NULL) {
 #'
 #' @return A data frame containing all trial information.
 #' @export
-trial_lists <- function(sp_lists, subjects = NULL, seq_assign = FALSE) {
+trial_lists <- function(design_args,
+                        subjects = NULL, seq_assign = FALSE) {
+    sp_lists <- stim_lists(design_args)
     sp2 <- split(sp_lists, sp_lists[["list_id"]])
     if (is.null(subjects)) {
         subjects <- length(sp2)
@@ -95,19 +104,94 @@ trial_lists <- function(sp_lists, subjects = NULL, seq_assign = FALSE) {
     return(res2)
 }
 
-#' Simulate data with normally distributed errors
+#' Get names for predictors in factorial design
 #'
-#' @param ivs named list of independent variables (IVs) with each list
-#' element a vector giving the levels of that IV, or a single number
-#' stating the number of desired levels
-#' @param between_subj character vector with names of IVs whose
-#' levels are administered between subjects
-#' @param between_item charater vector with names of IVs whose levels
-#' are administered between items
-#' @param n_item desired number of stimulus items; if \code{NULL},
-#' will generate lists with the minimum possible number
-#' @param n_rep number of repetitions of each stimulus item for each
-#' participant (default 1)
+#' Get the names for the numerical predictors corresponding to all
+#' main effects and interactions of categorical IVs in a factorial
+#' design.
+#'
+#' @param design_args A list with experimental design information (see \code{link{stim_lists}})
+#' @param design_formula A formula (default NULL, constructs from \code{design_args})
+#' @param contr_type Name of formula for generating contrasts (default "contr.dev")
+#' @return A character vector with names of all the terms
+#' @export 
+term_names <- function(design_args,
+                       design_formula = NULL,
+                       contr_type = "contr.dev") {
+    check_design_args(design_args)
+    plists <- stim_lists(design_args)
+    cont <- as.list(rep("contr.dev", length(design_args[["ivs"]])))
+    names(cont) <- names(design_args[["ivs"]])
+    if (is.null(design_formula)) design_formula <- as.formula(paste0("~",
+                                                               paste(names(design_args[["ivs"]]),
+                                                                     collapse = " * ")))
+    suppressWarnings(mmx <- model.matrix(design_formula, plists, contrasts.arg = cont))
+    return(colnames(mmx))
+}
+
+#' Get the GLM formula for a factorially-designed experiment
+#'
+#' Get the formula corresponding to the general linear model for a
+#' factorially designed experiment, with maximal random effects.
+#' 
+#' @param design_args A list with experimental design information (see \code{link{stim_lists}})
+#' @param n_subj Number of subjects
+#' @param dv_name Name of dependent variable; \code{NULL} (default) for one-sided formula
+#' @param lmer_format Do you want the results combined as the model formula for a \code{lmer} model? (default \code{TRUE})
+#' @return A formula, character string, or list, depending
+#' @export
+design_formula <- function(design_args,
+                           n_subj = NULL,
+                           dv_name = NULL,
+                           lmer_format = TRUE) {
+    iv_names <- names(design_args[["ivs"]])
+
+    fixed <- paste(iv_names, collapse = " * ")
+
+    fac_cnts <- fac_counts(iv_names, trial_lists(design_args, subjects = n_subj))
+    fac_info <- attr(terms(as.formula(paste0("~", paste(iv_names, collapse = "*")))), "factors")
+
+    rfx <- lapply(fac_cnts, function(lx) {
+        lvec <- sapply(lx, function(mx) {
+            as.logical(prod(apply(mx, 2, function(xx) all(xx > 1))))
+        })
+        res <- fac_info[, lvec, drop = FALSE]        
+        keep_term <- rep(TRUE, ncol(res))
+        ## try to simplify the formula
+        for (cx in rev(seq_len(ncol(res))[-1])) {
+            drop_term <- sapply(seq_len(cx - 1), function(ccx) {
+                identical(as.logical(res[, ccx, drop = FALSE]) | as.logical(res[, cx, drop = FALSE]),
+                          as.logical(res[, cx, drop = FALSE]))
+            })
+            keep_term[seq_len(cx - 1)] <- keep_term[seq_len(cx - 1)] & (!drop_term)
+        }
+        fterms <- apply(res[, keep_term, drop = FALSE], 2, function(llx) {
+            paste(names(llx)[as.logical(llx)], collapse = " * ")
+        })
+        need_int <- any(apply(lx[[1]], 2, sum) > 1)
+        fterms2 <- if (need_int) c("1", fterms) else fterms
+        paste(fterms2, collapse = " + ")
+    })
+    
+    form_list <- c(list(fixed = fixed), rfx)
+    
+    if (lmer_format) {
+        form_str <- paste0(dv_name, " ~ ", form_list[["fixed"]], " + ",
+               paste(sapply(names(form_list[-1]),
+                            function(nx) paste0("(", rfx[[nx]], " | ", nx, ")")),
+                     collapse = " + "))
+        result <- as.formula(form_str, env = NULL)
+    } else {
+        result <- lapply(form_list, function(x) formula(paste0("~", x), env = NULL))
+    }
+    
+    return(result)
+}
+
+#' Compose data from fixed and random effects, with normally distributed errors
+#'
+#' @param design_args List containing information about the experiment
+#' design; see \code{\link{stim_lists}}
 #' @param fixed vector of fixed effects
 #' @param subj_rmx matrix of by-subject random effects
 #' @param item_rmx matrix of by-item random effects
@@ -115,12 +199,11 @@ trial_lists <- function(sp_lists, subjects = NULL, seq_assign = FALSE) {
 #' @param verbose give debugging info (default = \code{FALSE})
 #' @return a data frame containing simulated data
 #' @export
-sim_norm <- function(ivs,
-                     between_subj = c(),
-                     between_item = c(),
-                     n_subj = NULL, n_item = NULL, n_rep = 1,
-                     fixed = NULL, subj_rmx = NULL, item_rmx = NULL,
-                     err_var = 1, verbose = FALSE) {
+compose_data <- function(design_args,
+                         n_subj = NULL,
+                         fixed = NULL,
+                         subj_rmx = NULL, item_rmx = NULL,
+                         err_var = 1, verbose = FALSE) {
     ## utility function for doing matrix multiplication
     multiply_mx <- function(des_mx, rfx, row_ix) {
         ## make sure all cols in rfx are represented in des_mx
@@ -166,10 +249,18 @@ sim_norm <- function(ivs,
     if (is.null(subj_rmx)) {
         stop("Autogeneration of subj_rmx not implemented yet; please define 'subj_rmx'")
     } else {}
+    if (nrow(subj_rmx) != length(unique(tlists[["subj_id"]]))) {
+        stop("Argument 'subj_rmx' has ", nrow(subj_rmx), " rows; needs ",
+             length(unique(tlists[["subj_id"]])))
+    } else {}
     sre <- multiply_mx(mmx, subj_rmx, tlists[["subj_id"]])
 
     if (is.null(item_rmx)) {
         stop("Autogeneration of item_rmx not implemented yet; please define 'item_rmx'")
+    } else {}
+    if (nrow(item_rmx) != length(unique(tlists[["item_id"]]))) {
+        stop("Argument 'item_rmx' has ", nrow(item_rmx), " rows; needs ",
+             length(unique(tlists[["item_id"]])))
     } else {}
     ire <- multiply_mx(mmx, item_rmx, tlists[["item_id"]])
     err <- rnorm(nrow(tlists), sd = sqrt(err_var))

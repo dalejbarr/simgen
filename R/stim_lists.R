@@ -3,17 +3,18 @@
 #' Generates counterbalanced presentation lists for factorially
 #' designed experiments involving stimulus presentation
 #'
-#' @param ivs named list of independent variables (IVs) with each list
-#' element a vector giving the levels of that IV, or a single number
-#' stating the number of desired levels
-#' @param between_subj character vector with names of IVs whose
-#' levels are administered between subjects
-#' @param between_item charater vector with names of IVs whose levels
-#' are administered between items
-#' @param n_item desired number of stimulus items; if \code{NULL},
-#' will generate lists with the minimum possible number
-#' @param n_rep number of repetitions of each stimulus item for each
-#' participant (default 1)
+#' @param design_args A list describing the experimental design, which
+#' must have an element \code{ivs}, giving a named list of independent
+#' variables, with each list element a vector giving the levels of
+#' that IV, or a single number stating the number of desired levels.
+#' If any IVs are administered between-subjects or between-items,
+#' these should be named in list elements \code{between_subj} and
+#' \code{between_item} respectively.  The argument \code{design_args}
+#' also can optionally include the following two elements:
+#' \code{n_item}, the desired number of stimulus items, which if
+#' unspecified, will result in lists with the minimum possible number
+#' of items; and \code{n_rep}, the number of repetitions of each
+#' stimulus item for each participant (default 1).
 #' @param as_one boolean (default \code{TRUE}) specifying whether the
 #' presentation lists are to be returned as a single data frame or as
 #' elements in a list object
@@ -23,28 +24,24 @@
 #' depending on the value of \code{as_one}
 #'
 #' @examples
-#' stim_lists(c(A = 2, B = 2)) # 2x2 within-subjects within-item
+#' stim_lists(list(ivs = c(A = 2, B = 2))) # 2x2 within-subjects within-item
 #' 
-#' stim_lists(c(A = 2, B = 2), n_item = 16) # same but w/more items
+#' stim_lists(list(c(A = 2, B = 2), n_item = 16)) # same but w/more items
 #'
-#' stim_lists(c(A = 2, B = 2), n_item = 16, n_rep = 3)
+#' stim_lists(list(c(A = 2, B = 2), n_item = 16, n_rep = 3))
 #'
 #' # mixed by subject, fully within by item
-#' stim_lists(list(group = c("adult", "child"),
-#'                 task = c("easy", "hard")),
+#' stim_lists(list(ivs = list(group = c("adult", "child"),
+#'                            task = c("easy", "hard")),
 #'            between_subj = "group",
-#'            n_item = 12)
+#'            n_item = 12))
 #'
 #' # mixed by subject, mixed by item
-#' stim_lists(c(A = 2, B = 2),
+#' stim_lists(list(ivs = c(A = 2, B = 2),
 #'            between_subj = "A",
-#'            between_item = "B")
+#'            between_item = "B"))
 #' @export
-stim_lists <- function(ivs,
-                       between_subj = c(),
-                       between_item = c(),
-                       n_item = NULL,
-                       n_rep = 1,
+stim_lists <- function(design_args, 
                        as_one = TRUE) {
     fac_combine_levels <- function(vars, iv_list, dframe = TRUE) {
         row_indices <- rev(do.call("expand.grid",
@@ -89,17 +86,19 @@ stim_lists <- function(ivs,
         }
     }
 
+    check_design_args(design_args)
+    iv_names <- names(design_args[["ivs"]])
     ## check whether elements of 'ivs' are numbers and convert to char vector
-    ivs2 <- lapply(names(ivs), function(nx) {
-        x <- ivs[[nx]]
+    ivs2 <- lapply(iv_names, function(nx) {
+        x <- design_args[["ivs"]][[nx]]
         if ((length(x) == 1) && is.numeric(x)) {
             paste0(nx, seq_len(x))
         } else {x}
     })
-    names(ivs2) <- names(ivs)
+    names(ivs2) <- iv_names
     
-    item_within <- setdiff(names(ivs2), between_item)
-    subj_within <- setdiff(names(ivs2), between_subj)
+    item_within <- setdiff(names(ivs2), design_args[["between_item"]])
+    subj_within <- setdiff(names(ivs2), design_args[["between_subj"]])
     ## iv_levels <- sapply(ivs2, length) # IS THIS NEEDED?
 
     ww_fac <- intersect(item_within, subj_within)
@@ -107,7 +106,7 @@ stim_lists <- function(ivs,
     ww_chunks <- rotate_cells(fac_combine_levels(intersect(item_within, subj_within),
                                                  ivs2))
 
-    wb_chunks <- fac_combine_levels(intersect(subj_within, between_item), ivs2)
+    wb_chunks <- fac_combine_levels(intersect(subj_within, design_args[["between_item"]]), ivs2)
 
     ## combine the WSWI and WSBI chunks to create the base presentation lists
     if (nrow(wb_chunks) > 0) {
@@ -123,14 +122,17 @@ stim_lists <- function(ivs,
     }
 
     ## handle BSWI
-    bswi <- fac_combine_levels(intersect(between_subj, item_within), ivs2)
+    bswi <- fac_combine_levels(intersect(design_args[["between_subj"]],
+                                         item_within), ivs2)
     bswi_lists <- bs_combine(bswi, base_plists)
 
     ## handle bsbi factors (if they exist)
-    bsbi <- fac_combine_levels(intersect(between_subj, between_item), ivs2)
+    bsbi <- fac_combine_levels(intersect(design_args[["between_subj"]],
+                                         design_args[["between_item"]]), ivs2)
     bsbi_lists <- bs_combine(bsbi, bswi_lists)
     div_fac <- if (nrow(bsbi)) nrow(bsbi) else 1
-    if (is.null(n_item)) { # dynamically choose minimum n_item
+    n_item <- design_args[["n_item"]]
+    if (is.null(design_args[["n_item"]])) { # dynamically choose minimum n_item
         if (length(bswi_lists) > 0) {
             n_item <- nrow(bswi_lists[[1]]) * div_fac
         } else {
@@ -161,9 +163,12 @@ stim_lists <- function(ivs,
     },
                      it_lists, bsbi_lists, SIMPLIFY = FALSE)
 
+    n_rep <- design_args[["n_rep"]]
+    if (is.null(design_args[["n_rep"]])) n_rep <- 1
+
     if (n_rep > 1) {
         plists <- lapply(plists, function(x) {
-                             cbind(n_rep = rep(seq_len(n_rep), each = nrow(x)),
+                             cbind(n_rep = paste0("r", rep(seq_len(n_rep), each = nrow(x))),
                                    x[rep(seq_len(nrow(x)), n_rep), , drop = FALSE])
                          })
     } else {}
