@@ -133,8 +133,9 @@ mkParamMx.facMixedAB <- function(param.list, nmc=1000, firstseed=NULL) {
 #' @examples
 #' mkDf.facMixedAB(nitem=24)
 #' mkDf.facMixedAB(nreps=2)
-#' 
-#' #' @export mkDf.facMixedAB
+#'
+#' @importFrom MASS mvrnorm
+#' @export mkDf.facMixedAB
 mkDf.facMixedAB <- function(mcr.params=mkParamMx.facMixedAB(genParamRanges.facMixedAB(), 1)[1,],
                             nsubj=24, nitem=NULL, nreps=NULL, showRfx=FALSE) {
     if (is.null(nitem) && is.null(nreps)) {
@@ -159,7 +160,7 @@ mkDf.facMixedAB <- function(mcr.params=mkParamMx.facMixedAB(genParamRanges.facMi
     set.seed(x[["seed"]])
   
     library(MASS)
-    ranef.subj <- mvrnorm(nsubj, mu=c(0,0),
+    ranef.subj <- MASS::mvrnorm(nsubj, mu=c(0,0),
                           Sigma=formVCovMx(x[c("t_00","t_11")], x["r_01"]))
     if (is.null(nitem)) {
         srs <- rep(ranef.subj[,2], each=2)*c(-.5,.5) # subject random slope
@@ -191,7 +192,7 @@ mkDf.facMixedAB <- function(mcr.params=mkParamMx.facMixedAB(genParamRanges.facMi
                                 ItemID=factor(1:nitem),
                                 B=factor(rep(c("B1","B2","B2","B1"),each=nitem/2)))
         ranef.item <- cbind(ItemID=factor(1:nitem),
-                            as.data.frame(mvrnorm(nitem, mu=rep(0,4),
+                            as.data.frame(MASS::mvrnorm(nitem, mu=rep(0,4),
                                                   Sigma=formVCovMx(x[c("w_00","w_11","w_22","w_33")],
                                                       x[c("w_01","w_02","w_03","w_12","w_13","w_23")]))))
         colnames(ranef.item) <- c("ItemID","i.i","i.A","i.B","i.AB")

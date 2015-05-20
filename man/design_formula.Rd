@@ -5,7 +5,7 @@
 \title{Get the GLM formula for a factorially-designed experiment}
 \usage{
 design_formula(design_args, n_subj = NULL, dv_name = NULL,
-  lmer_format = TRUE)
+  lme4_format = TRUE)
 }
 \arguments{
 \item{design_args}{A list with experimental design information (see \code{link{stim_lists}})}
@@ -14,7 +14,7 @@ design_formula(design_args, n_subj = NULL, dv_name = NULL,
 
 \item{dv_name}{Name of dependent variable; \code{NULL} (default) for one-sided formula}
 
-\item{lmer_format}{Do you want the results combined as the model formula for a \code{lmer} model? (default \code{TRUE})}
+\item{lme4_format}{Do you want the results combined as the model formula for a \code{lme4} model? (default \code{TRUE})}
 }
 \value{
 A formula, character string, or list, depending

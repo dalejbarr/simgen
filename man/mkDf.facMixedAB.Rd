@@ -33,8 +33,6 @@ subject effects only.
 \examples{
 mkDf.facMixedAB(nitem=24)
 mkDf.facMixedAB(nreps=2)
-
-#'
 }
 \seealso{
 \code{\link{genParamRanges.facMixedAB}}, \code{\link{randParams}}, \code{\link{mkParamMx.facMixedAB}}

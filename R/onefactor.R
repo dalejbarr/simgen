@@ -1070,7 +1070,7 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
 #' x.df5 <- mkDf(nsubj=24, nitem=24, mcr.params=pmx[1,], wsbi=FALSE,missMeth="bysubjcond")
 #' 
 #' 
-#' 
+#' @importFrom MASS mvrnorm
 #' @export mkDf
 mkDf <- function(nsubj=24,    # number of subjects
                   nitem=24,    # number of items
