@@ -10,16 +10,21 @@ fac_counts <- function(iv_names, dat, unit_names = c("subj_id", "item_id")) {
     rfx <- sapply(unit_names, function(this_unit) {
         ## figure out how many things are replicated by unit, how many times
         rep_mx <- xtabs(paste0("~", paste(iv_names, collapse = "+"), "+", this_unit), dat)
-        lvec <- apply(fac_info, 2, function(x) {
+        lvec <- lapply(colnames(fac_info), function(cx) {
+            x <- fac_info[, cx, drop = FALSE]
             ix <- seq_along(x)[as.logical(x)]
             ## create margin table
             marg_mx <- apply(rep_mx, c(ix, length(dim(rep_mx))), sum)
             mmx <- apply(marg_mx, length(dim(marg_mx)), c)
-            ## as.logical(prod(apply(mmx, 2, function(xx) all(xx > 1))))
         })
-        ## res <- fac_info[, lvec, drop = FALSE]
-        ## keep_term <- rep(TRUE, ncol(res))
-        ## try to simplify the formula
+        names(lvec) <- colnames(fac_info)
+        return(lvec)
+        ## lvec <- apply(fac_info, 2, function(x) {
+        ##     ix <- seq_along(x)[as.logical(x)]
+        ##     ## create margin table
+        ##     marg_mx <- apply(rep_mx, c(ix, length(dim(rep_mx))), sum)
+        ##     mmx <- apply(marg_mx, length(dim(marg_mx)), c)
+        ## })
     }, simplify = FALSE)
     return(rfx)
 }
@@ -48,6 +53,12 @@ with_dev_pred <- function(dat, iv_names = NULL) {
 
 check_design_args <- function(design_args) {
     ## TODO check integrity of design args
+    required_elements <- c("ivs")
+    missing_elements <- setdiff(required_elements, names(design_args))
+    if (length(missing_elements) > 0) {
+        stop("'design_args' missing element(s): ",
+             paste(missing_elements, collapse = ", "))
+    } else {}
     return(TRUE)
 }
 
@@ -358,7 +369,7 @@ sim_norm <- function(mcr.data) {
     rfx <- mapply(function(x, n) {
         MASS::mvrnorm(n, mu = rep(0, ncol(x)), x)
     }, mcr.data[c("subj_rfx", "item_rfx")],
-           c(mcr.data[["n_subj"]], design_args[["n_item"]]))
+           c(mcr.data[["n_subj"]], design_args[["n_item"]]), SIMPLIFY = FALSE)
     compose_data(design_args,
                  mcr.data[["n_subj"]],
                  fixed = mcr.data[["fixed"]],
