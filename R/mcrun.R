@@ -71,204 +71,166 @@
 #' mcr.reportInt=5) # report progress every 5 runs
 #' 
 #' @export mcRun
-mcRun <- function(mcr.fn,  # name of function (or expression) to be applied
-                  mcr.fnArgs=NULL, # list of arguments to be passed to the model fitting function
-                  mcr.cluster=NULL, # parallel cluster; NULL for single cluster
-                  mcr.outfile=tempfile(fileext=".csv"), # name of text file to write to
-                  mcr.datFn=NULL,
-                  mcr.datArgs=NULL, # list of arguments to be passed to the data generating function
-                  mcr.dat=NULL,
-                  mcr.constant=NULL,
-                  mcr.varying=NULL,
-                  mcr.LoadOnExit=TRUE,
-                  mcr.reportInt=100) { # user parameters
-    statusUpdate <- function(i, elapsed) {
-        fmtstr1 <- paste("%",nchar(as.character(nEpochs)),"d",
-                         sep="")
-        fmtstr1.2 <- paste("%", nchar(as.character(nrow(mcr.varying))),"d", sep="")
-        fmtstr2 <- paste(fmtstr1, "/", nEpochs, " (", fmtstr1.2,
-                         "/", nrow(mcr.varying),
-                         ") ", ":", sep="")
-        stmp1 <- sprintf(fmtstr2, i, ix.b[i], nrow(mcr.varying))
-        
+mcRun <- function (mcr.fn,
+                    mcr.fnArgs = NULL,
+                    mcr.cluster = NULL,
+                    mcr.outfile = tempfile(fileext = ".csv"), 
+                    mcr.datFn = NULL,
+                    mcr.datArgs = NULL, mcr.dat = NULL,
+                    mcr.constant = NULL,
+                    mcr.varying = NULL,
+                    mcr.LoadOnExit = TRUE, mcr.reportInt = 100) {
+    statusUpdate <- function(i, elapsed, tot_epochs) {
+        fmtstr1 <- paste("%", nchar(as.character(nEpochs)), "d", 
+            sep = "")
+        fmtstr1.2 <- paste("%", nchar(as.character(tot_epochs)), 
+            "d", sep = "")
+        fmtstr2 <- paste(fmtstr1, "/", nEpochs, " (", fmtstr1.2, 
+            "/", tot_epochs, ") ", ":", sep = "")
+        stmp1 <- sprintf(fmtstr2, i, ix.b[i], tot_epochs)
         e2 <- elapsed[1:i]
         efac <- mean(e2)
         cat(stmp1, sprintf("%1.3fs/sweep, ", efac))
-        totsecs <- efac*(nEpochs-i)
-        cat(sprintf("%02dh:", floor(totsecs / 3600)))
+        totsecs <- efac * (nEpochs - i)
+        cat(sprintf("%02dh:", floor(totsecs/3600)))
         if (totsecs >= 3600) {
-            remn <- totsecs %% 3600
+            remn <- totsecs%%3600
         } else {
             remn <- totsecs
         }
         cat(sprintf("%02dm:", floor(remn/60)))
-        cat(sprintf("%02ds", round(remn %% 60)), "left\n")
+        cat(sprintf("%02ds", round(remn%%60)), "left\n")
         flush.console()
     }
-
-    # basic error checking
     if (missing(mcr.fn)) {
         stop("need to supply 'FUN' argument to mcRun")
     } else {}
-    
     if (is.function(mcr.fn)) {
         mcr.fn <- as.character(substitute(mcr.fn))
     } else {}
-
-    fbDataArgument <- c("mcr.data") %in% names(formals(mcr.fn)) # do we need to pass data to the function?
+    fbDataArgument <- c("mcr.data") %in% names(formals(mcr.fn))
     if (fbDataArgument && is.null(mcr.datFn) && is.null(mcr.dat)) {
-        stop("function '", mcr.fn,
-             "' needs data (has 'mcr.data' argument), but mcRun arguments 'mcr.dat' and 'mcr.datFn' ",
-             "were not defined!")
+        stop("function '", mcr.fn, "' needs data (has 'mcr.data' argument), but mcRun arguments 'mcr.dat' and 'mcr.datFn' ", 
+            "were not defined!")
     } else {}
-
     if (!fbDataArgument && is.null(mcr.datFn) && is.null(mcr.dat)) {
-        warning("data arguments supplied to mcRun ('mcr.dat' and/or 'mcr.datFn'), but target function '",
-                mcr.fn, "' has no mcr.data argument defined!")
+        warning("data arguments supplied to mcRun ('mcr.dat' and/or 'mcr.datFn'), but target function '", 
+            mcr.fn, "' has no mcr.data argument defined!")
     } else {}
-  
     if (!is.null(mcr.datFn) && !is.null(mcr.dat)) {
         stop("can only define one of 'mcr.datFn' OR 'mcr.dat', NOT both! (see ?mcRun for details)")
     } else {}
-
-    if (!is.character(mcr.datFn)) {
+   if (!is.character(mcr.datFn)) {
         if (is.function(mcr.datFn)) {
             mcr.datFn <- as.character(substitute(mcr.datFn))
         } else {}
     } else {}
-
     if (!is.null(mcr.constant)) {
         if (!is.list(mcr.constant)) {
             stop("mcr.constant must be a list")
         } else {}
     } else {}
-  
-    # for 'varying' arguments that are matrices, make a data frame
+    ## covert a matrix to a data frame
     if (is.matrix(mcr.varying)) {
         mcr.varying <- as.data.frame(mcr.varying)
-    } else if (is.list(mcr.varying) && !is.data.frame(mcr.varying)) {
-    # for 'varying' arguments that are lists,
-    # compile a data frame    
-        ff <- lapply(mcr.varying, function(x) {
-            if (is.list(x)) {
-                as.data.frame(x)
-            } else {
-                x
-            }
-        })
-        mcr.varying <- do.call("rbind", ff)
     } else {}
-
-    # prepare arguments for the data generation function
-    # if there is no function, create one that just returns mcr.dat
+    if (is.data.frame(mcr.varying)) {
+        ## it's a data frame: split it up by row
+        mcr.varying <- split(mcr.varying, seq_len(nrow(mcr.varying)))
+    } else {}
+    tot_epochs <- length(mcr.varying)
     if (!is.null(mcr.dat)) {
-        .mcr.mkDat <- function() {return(mcr.dat)}
+        .mcr.mkDat <- function() {
+            return(mcr.dat)
+        }
         mcr.datFn <- ".mcr.mkDat"
-    } else {  # data generation function
-        #dparams <- list(...)[intersect(names(formals(mcr.datFn)), names(list(...)))]
+    } else {
         datArgs <- formals(mcr.datFn)
         argTest <- names(mcr.datArgs) %in% names(datArgs)
-        if (sum(argTest)<length(argTest) && !("..." %in% names(formals(mcr.datFn)))) {
-            # we have an argument that doesn't match the fn, and the fn doesn't have '...' args
-            badArgs <- paste(names(mcr.datArgs)[!argTest], collapse=", ")
-            stop("arg(s) '", badArgs, "' not in list of formal args for function '",mcr.datFn, "'")
+        if (sum(argTest) < length(argTest) && !("..." %in% names(formals(mcr.datFn)))) {
+            badArgs <- paste(names(mcr.datArgs)[!argTest], collapse = ", ")
+            stop("arg(s) '", badArgs, "' not in list of formal args for function '", 
+                mcr.datFn, "'")
         } else {}
     }
-
-    # prepare arguments for the target function
-    fbParamArgument <- c("mcr.params") %in% names(formals(mcr.fn)) # do we need to pass data to the function?
+    fbParamArgument <- c("mcr.params") %in% names(formals(mcr.fn))
     fparams <- mcr.fnArgs
-    #fparams <- list(...)[intersect(names(formals(mcr.fn)), names(list(...)))]
-
-    # write the function that we will call repeatedly
-    .mcr.doOnce <- function(theseParams, fbDataArg, fbParamArg, datFn, datArgs, parConst, fpar,
-                            fn) {    
-        #if (fbDataArgument) { # create data if necessary
-        if (fbDataArg) { # create data if necessary
-            #xdat <- do.call(mcr.datFn, c(mcr.datArgs, list(mcr.params=c(mcr.constant, theseParams))))
-            xdat <- do.call(datFn, c(datArgs, list(mcr.params=c(parConst, theseParams))))
-            #fparams2 <- c(fparams, list(mcr.data=xdat))
-            fparams2 <- c(fpar, list(mcr.data=xdat))
+    .mcr.doOnce <- function(theseParams, fbDataArg, fbParamArg, 
+        datFn, datArgs, parConst, fpar, fn) {
+        if (fbDataArg) {
+            xdat <- do.call(datFn, c(datArgs, list(mcr.params = c(parConst, 
+                theseParams))))
+            fparams2 <- c(fpar, list(mcr.data = xdat))
         } else {
             xdat <- NULL
-            #fparams2 <- fparams
             fparams2 <- fpar
         }
-        #if (fbParamArgument) {
         if (fbParamArg) {
-            #fparams3 <- c(fparams2, list(mcr.params=c(mcr.constant, theseParams)))
-            fparams3 <- c(fparams2, list(mcr.params=c(parConst, theseParams)))
+            fparams3 <- c(fparams2, list(mcr.params = c(parConst, 
+                theseParams)))
         } else {
             fparams3 <- fparams2
         }
         res <- do.call(fn, fparams3)
         return(res)
     }
-  
-    # calculate how many epochs ("sweeps") to perform
-    fullEpochs <- floor(nrow(mcr.varying)/mcr.reportInt)
-    remainderEpochs <- ((nrow(mcr.varying) %% mcr.reportInt)>0)*1
+    fullEpochs <- floor(tot_epochs / mcr.reportInt)
+    remainderEpochs <- ((tot_epochs %% mcr.reportInt) > 
+        0) * 1
     nEpochs <- fullEpochs + remainderEpochs
-    ix.a <- (0:(nEpochs-1))*mcr.reportInt+1
-    ix.b <- ix.a + c(rep(mcr.reportInt, fullEpochs), rep(nrow(mcr.varying)%%mcr.reportInt, remainderEpochs))-1
-  
-    # set up the result matrix
-    ff <- .mcr.doOnce(as.list(mcr.varying[1,]),
-                      fbDataArg=fbDataArgument, fbParamArg=fbParamArgument,
-                      datFn=mcr.datFn, datArgs=mcr.datArgs, parConst=mcr.constant,
-                      fpar=fparams, fn=mcr.fn)
-                      
+    ix.a <- (0:(nEpochs - 1)) * mcr.reportInt + 1
+    ix.b <- ix.a + c(rep(mcr.reportInt, fullEpochs), rep(tot_epochs %% mcr.reportInt, 
+        remainderEpochs)) - 1
+    ff <- .mcr.doOnce(as.list(mcr.varying[[1]]), fbDataArg = fbDataArgument, 
+        fbParamArg = fbParamArgument, datFn = mcr.datFn, datArgs = mcr.datArgs, 
+        parConst = mcr.constant, fpar = fparams, fn = mcr.fn)
     mcr.colnames <- names(ff)
     mcr.nelements <- length(ff)
     mcr.orig <- ff
-
-    # open the file
-    mcr.con <- file(mcr.outfile, "w", blocking=FALSE)
-    if (length(mcr.colnames)==0) {
-        mcr.colnames <- paste("V", 1:mcr.nelements, sep="")
-    } else {}
-    cat(mcr.colnames, file=mcr.con, append=FALSE, sep=",")
-    cat("\n", append=TRUE, file=mcr.con)
+    mcr.con <- file(mcr.outfile, "w", blocking = FALSE)
+    if (length(mcr.colnames) == 0) {
+        mcr.colnames <- paste("V", 1:mcr.nelements, sep = "")
+    }
+    else {
+    }
+    cat(mcr.colnames, file = mcr.con, append = FALSE, sep = ",")
+    cat("\n", append = TRUE, file = mcr.con)
     elapsed <- rep(NA, nEpochs)
-
-    # export the data function to cluster
     if (!is.null(mcr.cluster)) {
         parallel::clusterExport(mcr.cluster, c(mcr.datFn, mcr.fn))
-    } else {}
-    
-    # ready to go, start running
-    for (i in 1:nEpochs) {
-        elapsed[i] <-
-            system.time( {
-                todo <- split(mcr.varying[ix.a[i]:ix.b[i],], ix.a[i]:ix.b[i])
-                if (!is.null(mcr.cluster)) {
-                    ff <- parallel:::parLapplyLB(mcr.cluster, todo, .mcr.doOnce,
-                                                 fbDataArg=fbDataArgument, fbParamArg=fbParamArgument,
-                                                 datFn=mcr.datFn, datArgs=mcr.datArgs, parConst=mcr.constant,
-                                                 fpar=fparams, fn=mcr.fn)
-                                        # ff <- mclapply(todo, .mcr.doOnce, mc.cores=mcr.nCores)
-                } else {
-                    ff <- lapply(todo, .mcr.doOnce,
-                                 fbDataArg=fbDataArgument, fbParamArg=fbParamArgument,
-                                 datFn=mcr.datFn, datArgs=mcr.datArgs, parConst=mcr.constant,
-                                 fpar=fparams, fn=mcr.fn)
-                }
-                for (ii in 1:length(ff)) {
-                    cat(ff[[ii]], file=mcr.con, append=TRUE, sep=",")
-                    cat("\n", file=mcr.con)
-                }
-            })["elapsed"]
-        statusUpdate(i, elapsed)
     }
-
+    else {
+    }
+    for (i in 1:nEpochs) {
+        elapsed[i] <- system.time({
+            todo <- mcr.varying[ix.a[i]:ix.b[i]]
+            if (!is.null(mcr.cluster)) {
+                ff <- parallel:::parLapplyLB(mcr.cluster, todo, 
+                  .mcr.doOnce, fbDataArg = fbDataArgument, fbParamArg = fbParamArgument, 
+                  datFn = mcr.datFn, datArgs = mcr.datArgs, parConst = mcr.constant, 
+                  fpar = fparams, fn = mcr.fn)
+            }
+            else {
+                ff <- lapply(todo, .mcr.doOnce, fbDataArg = fbDataArgument, 
+                  fbParamArg = fbParamArgument, datFn = mcr.datFn, 
+                  datArgs = mcr.datArgs, parConst = mcr.constant, 
+                  fpar = fparams, fn = mcr.fn)
+            }
+            for (ii in 1:length(ff)) {
+                cat(ff[[ii]], file = mcr.con, append = TRUE, 
+                  sep = ",")
+                cat("\n", file = mcr.con)
+            }
+        })["elapsed"]
+        statusUpdate(i, elapsed, tot_epochs)
+    }
     close(mcr.con)
-  
     cat("total time (seconds): ", sum(elapsed), "\n")
-
     if (mcr.LoadOnExit) {
-        result <- read.csv(mcr.outfile, header=TRUE)
+        result <- read.csv(mcr.outfile, header = TRUE)
         return(invisible(result))
-    } else {
+    }
+    else {
         return(NULL)
     }
 }
