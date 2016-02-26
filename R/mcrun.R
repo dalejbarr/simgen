@@ -138,7 +138,8 @@ mcRun <- function (mcr.fn,
         ## it's a data frame: split it up by row
         mcr.varying <- split(mcr.varying, seq_len(nrow(mcr.varying)))
     } else {}
-    tot_epochs <- length(mcr.varying)
+    tot_epochs <- if (is.data.frame(mcr.varying) || is.matrix(mcr.varying))
+                      nrow(mcr.varying) else length(mcr.varying)
     if (!is.null(mcr.dat)) {
         .mcr.mkDat <- function() {
             return(mcr.dat)
