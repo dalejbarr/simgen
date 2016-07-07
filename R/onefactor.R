@@ -1041,11 +1041,17 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
 #' 'random'; alternatives are 'none', 'randomBig', 'bysubj', 'bycond',
 #' bysubjcond'; see Details)
 #' @param rigen use a 'random-intercepts-only' generative model (default FALSE)
-#' @return A dataframe, with fields:
+#' @param verbose Return all randomly generated values as well as the data.  
+#' @return If \code{verbose = FALSE} (the default), a dataframe, with fields:
 #' \item{SubjID}{a factor, identifying subject number}
 #' \item{ItemID}{a factor, identifying item number}
 #' \item{Cond}{treatment condition, deviation coded (-.5, .5)}
-#' \item{Resp}{response variable}
+#' \item{Resp}{response variable};
+#' If \code{verbose = TRUE}, a list, with elements:
+#' \item{dat}{The data, with columns defined as above;}
+#' \item{subj_re}{by-subject random effects}
+#' \item{item_re}{by-item random effects}
+#' \item{err}{the residuals}
 #' @seealso \code{\link{genParamRanges}}, \code{\link{mkDf.facMixedAB}}
 #' @examples
 #' 
@@ -1068,7 +1074,11 @@ fitstepwise.bestpath <- function(mcr.data, forward, crit=c(.01,.05,seq(.1,.8,.1)
 #' 
 #' ## by-subject/condition pair missing observation rates
 #' x.df5 <- mkDf(nsubj=24, nitem=24, mcr.params=pmx[1,], wsbi=FALSE,missMeth="bysubjcond")
-#' 
+#'
+#' ## verbose version
+#' x.df <- mkDf(verbose = TRUE)
+#' print(x.df$dat) # the data
+#' print(x.df$subj_re) # by-subject random effects
 #' 
 #' @importFrom MASS mvrnorm
 #' @export mkDf
@@ -1078,7 +1088,8 @@ mkDf <- function(nsubj=24,    # number of subjects
                   mcr.params=randParams(genParamRanges(), 1)[1,],
                                      # vector of parameters for generation
                   missMeth="random", # method for generating missing obs
-                  rigen=FALSE) { # random-intercepts-only generative model
+                  rigen=FALSE, # random-intercepts-only generative model
+                  verbose = FALSE) { # give all randomly generated params
   #   This function creates simulated data given a row of parameters and
   #   no. subjects and no. items
 
@@ -1201,9 +1212,20 @@ mkDf <- function(nsubj=24,    # number of subjects
   } else {}
   x[missing.lx,"Resp"] <- NA   # delete them
 
+  errs <- x$err # keep the errors
   x <- x[,c("SubjID","ItemID","Cond","Resp")]
   x$SubjID <- factor(x$SubjID)
-  return(x)
+  ret <- x
+  if (verbose) {
+    sre <- as.data.frame(subj)
+    sre$SubjID <- as.factor(as.integer(sre$SubjID))
+    ire <- as.data.frame(item)
+    ire$ItemID <- as.factor(as.integer(ire$ItemID))
+    ret <- list(dat = x,
+                subj_re = sre, item_re = ire,
+                err = errs)
+  } else {}
+  return(ret)
 }
 
 

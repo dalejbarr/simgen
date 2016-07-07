@@ -12,7 +12,7 @@ Imports:
     parallel,
     MASS,
     Matrix,
-		clusterGeneration
+    clusterGeneration
 Suggests:
     testthat
 Description: R Code to accompany Barr, Levy, Scheepers, & Tily, "Keep It
@@ -20,3 +20,4 @@ Description: R Code to accompany Barr, Levy, Scheepers, & Tily, "Keep It
 License: GPL (>= 2)
 LazyData: yes
 Packaged: 2012-06-23 10:18:19 UTC; daleb
+RoxygenNote: 5.0.1
