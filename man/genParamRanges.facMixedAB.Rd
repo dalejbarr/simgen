@@ -35,4 +35,3 @@ between-subjects and B within-subjects, and A,B within-items.
 \seealso{
 \code{\link{genParamRanges.facMixedAB}}, \code{\link{randParams}}, \code{\link{mkDf}}
 }
-

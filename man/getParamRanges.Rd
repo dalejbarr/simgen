@@ -46,4 +46,3 @@ print(as.list(p.env))
 \seealso{
 \code{\link{createParamMx}}
 }
-

@@ -43,4 +43,3 @@ fitnocorr.mcmc(x.bi, wsbi=TRUE, nmcmc=1000)
 \seealso{
 \code{\link{fitnocorr}}
 }
-

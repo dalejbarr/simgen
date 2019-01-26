@@ -38,4 +38,3 @@ mkDf.facMixedAB(nreps=2)
 \seealso{
 \code{\link{genParamRanges.facMixedAB}}, \code{\link{randParams}}, \code{\link{mkParamMx.facMixedAB}}
 }
-

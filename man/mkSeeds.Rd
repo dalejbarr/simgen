@@ -22,4 +22,3 @@ Creates a vector of unique random seeds for reproducible generation of datasets.
 nmc <- 10
 pmx <- cbind(randParams(genParamRanges(), nmc, 1001), seed=mkSeeds(nmc, 1001))
 }
-

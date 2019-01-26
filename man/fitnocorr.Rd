@@ -45,4 +45,3 @@ fitnocorr(x.wi, wsbi=FALSE)
 \seealso{
 \code{\link{mkDf}}, \code{\link{fitlmer.mcmc}}
 }
-

@@ -1,3 +1,55 @@
+#' Likelihood-Ratio Test for Fitted mer Objects
+#'
+#' @param m1 Model to be compared (list object from \code{\link{tryFit}})
+#' @param m2 Model to be compared (list object from \code{\link{tryFit}})
+#'
+#' @return A list with:
+#' \item{Number of Estimated Parameters}{A matrix;}
+#' \item{Likelihood-Ratio Test}{Output from the test, or \code{NA} if either or both models did not converge.}
+#' @seealso \code{\link{tryFit}}
+#' @examples
+#' dat <- mkDf()
+#' m1 <- tryFit(Resp~Cond+(1+Cond|SubjID)+(1+Cond|ItemID), dat, REML=FALSE)
+#' m2 <- tryFit(Resp~(1+Cond|SubjID)+(1+Cond|ItemID), dat, REML=FALSE)
+#' lrTest(m1, m2)
+#' @export lrTest
+lrTest <- function(m1, m2) {
+    m1v <- m1$value; m2v <- m2$value
+    # calculate no. estimated parameters
+    m1d <- m1v@dims
+    m2d <- m2v@dims
+    m1.df <- c(rand=m1d["nt"], fixed=m1d["p"], link=m1d["s"])
+    m1.df <- c(m1.df, tot=sum(m1.df))
+    m2.df <- c(rand=m2d["nt"], fixed=m2d["p"], link=m2d["s"])
+    m2.df <- c(m2.df, tot=sum(m2.df))
+    df.mx <- rbind(m1=m1.df, m2=m2.df)
+    colnames(df.mx) <- c("random","fixed","link","total")
+    # get estimated log likelihood (deviance)
+    if (m1$converged && m2$converged) {
+        dv.m1 <- c(m1=-2*logLik(m1v),
+                   m2=-2*logLik(m2v))
+        dv.m1 <- c(dv.m1, chisq=as.numeric(abs(dv.m1["m2"]-dv.m1["m1"])))
+        diff.df <- abs(df.mx["m2","total"]-df.mx["m1","total"])
+        dv.m1 <- c(dv.m1, df=diff.df)
+        dv.m1 <- c(dv.m1, p=as.numeric(pchisq(abs(dv.m1["chisq"]), diff.df, lower.tail=FALSE)))
+        res <- data.frame(deviance1=round(dv.m1["m1"],3), deviance2=round(dv.m1["m2"],3),
+                          chisq=round(dv.m1["chisq"],3), df=as.integer(dv.m1["df"]), p=dv.m1["p"])
+    } else {
+        res <- data.frame(deviance1=NA, deviance2=NA, chisq=NA, df=NA, p=NA)
+    }
+    list(`Number of Estimated Parameters`=df.mx,
+         `Likelihood-Ratio Test`=res)
+}
+
+.getLmer.chisq <- function(m1,m2) {
+    pval <- NA
+    if (m1$converged && m2$converged) {
+        chisq.val <- (-2*logLik(m1$value))-(-2*logLik(m2$value))
+        pval <- as.numeric(pchisq(abs(chisq.val), 1, lower.tail=FALSE))
+    } else {}
+    return(pval)
+}
+
 #' Fit model with error-trapping
 #' 
 #' Try to fit an lmer model, catching any warnings about convergence
@@ -23,7 +75,7 @@ tryFit <- function(tf.formula, tf.data, ...) {
     }
     arg.list <- c(list(formula=tf.formula, data=tf.data), list(...))
     list(value=withCallingHandlers(tryCatch(
-             do.call(lmer, arg.list),
+             do.call(lme4::lmer, arg.list),
              error=function(e) e),
              warning=w.handler),
          converged=converged)
@@ -203,57 +255,6 @@ getLmer.pValue <- function(m1,m2) {
     return(pval)
 }
 
-#' Likelihood-Ratio Test for Fitted mer Objects
-#'
-#' @param m1 Model to be compared (list object from \code{\link{tryFit}})
-#' @param m2 Model to be compared (list object from \code{\link{tryFit}})
-#'
-#' @return A list with:
-#' \item{Number of Estimated Parameters}{A matrix;}
-#' \item{Likelihood-Ratio Test}{Output from the test, or \code{NA} if either or both models did not converge.}
-#' @seealso \code{\link{tryFit}}
-#' @examples
-#' dat <- mkDf()
-#' m1 <- tryFit(Resp~Cond+(1+Cond|SubjID)+(1+Cond|ItemID), dat, REML=FALSE)
-#' m2 <- tryFit(Resp~(1+Cond|SubjID)+(1+Cond|ItemID), dat, REML=FALSE)
-#' lrTest(m1, m2)
-#' @export lrTest
-lrTest <- function(m1, m2) {
-    m1v <- m1$value; m2v <- m2$value
-    # calculate no. estimated parameters
-    m1d <- m1v@dims
-    m2d <- m2v@dims
-    m1.df <- c(rand=m1d["nt"], fixed=m1d["p"], link=m1d["s"])
-    m1.df <- c(m1.df, tot=sum(m1.df))
-    m2.df <- c(rand=m2d["nt"], fixed=m2d["p"], link=m2d["s"])
-    m2.df <- c(m2.df, tot=sum(m2.df))
-    df.mx <- rbind(m1=m1.df, m2=m2.df)
-    colnames(df.mx) <- c("random","fixed","link","total")
-    # get estimated log likelihood (deviance)
-    if (m1$converged && m2$converged) {
-        dv.m1 <- c(m1=-2*logLik(m1v),
-                   m2=-2*logLik(m2v))
-        dv.m1 <- c(dv.m1, chisq=as.numeric(abs(dv.m1["m2"]-dv.m1["m1"])))
-        diff.df <- abs(df.mx["m2","total"]-df.mx["m1","total"])
-        dv.m1 <- c(dv.m1, df=diff.df)
-        dv.m1 <- c(dv.m1, p=as.numeric(pchisq(abs(dv.m1["chisq"]), diff.df, lower.tail=FALSE)))
-        res <- data.frame(deviance1=round(dv.m1["m1"],3), deviance2=round(dv.m1["m2"],3),
-                          chisq=round(dv.m1["chisq"],3), df=as.integer(dv.m1["df"]), p=dv.m1["p"])
-    } else {
-        res <- data.frame(deviance1=NA, deviance2=NA, chisq=NA, df=NA, p=NA)
-    }
-    list(`Number of Estimated Parameters`=df.mx,
-         `Likelihood-Ratio Test`=res)
-}
-
-.getLmer.chisq <- function(m1,m2) {
-    pval <- NA
-    if (m1$converged && m2$converged) {
-        chisq.val <- (-2*logLik(m1$value))-(-2*logLik(m2$value))
-        pval <- as.numeric(pchisq(abs(chisq.val), 1, lower.tail=FALSE))
-    } else {}
-    return(pval)
-}
 
 #' Fit mixed-models and obtain p-values from model comparison
 #'

@@ -44,4 +44,3 @@ fitanova(x.wi, wsbi=FALSE)
 \seealso{
 \code{\link{mkDf}}
 }
-

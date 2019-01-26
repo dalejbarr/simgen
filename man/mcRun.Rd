@@ -96,4 +96,3 @@ mcr.datArgs=list(nitem=12, wsbi=TRUE), # values to be passed along to mkDf
 mcr.reportInt=5) # report progress every 5 runs
 
 }
-

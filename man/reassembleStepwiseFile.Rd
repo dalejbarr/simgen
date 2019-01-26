@@ -48,4 +48,3 @@ ff$forward[,2,]  # alpha-level=.05
 \seealso{
 \code{\link{fitstepwise}}, \code{\link{fitstepwise.bestpath}}.
 }
-

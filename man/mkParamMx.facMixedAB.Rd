@@ -25,4 +25,3 @@ mkParamMx.facMixedAB(genParamRanges.facMixedAB(), 10)
 \seealso{
 \code{\link{genParamRanges.facMixedAB}}, \code{\link{mkDf.facMixedAB}}
 }
-

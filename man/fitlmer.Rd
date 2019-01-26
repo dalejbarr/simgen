@@ -59,4 +59,3 @@ fitlmer(x.wi, wsbi=FALSE, ri.only=TRUE) # random intercepts only
 \seealso{
 \code{\link{mkDf}}, \code{\link{fitlmer.mcmc}}
 }
-

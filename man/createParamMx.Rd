@@ -76,4 +76,3 @@ createParamMx(10, simparam.env=p.env)
 \seealso{
 \code{\link{getParamRanges}}, \code{\link{mkDf}}
 }
-

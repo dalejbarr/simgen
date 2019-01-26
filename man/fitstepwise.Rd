@@ -68,4 +68,3 @@ fitstepwise(x8, wsbi=FALSE, mf=mf.ifirst, crit=.05)
 \code{\link{fitlmer}}, 
 \code{\link{fitstepwise.bestpath}}, \code{\link{reassembleStepwiseFile}}
 }
-

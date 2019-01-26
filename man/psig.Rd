@@ -32,4 +32,3 @@ psig(res[,c("p1","p2","pmf","pmax")])
 \seealso{
 \code{\link{pconv}}
 }
-

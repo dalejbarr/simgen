@@ -4,8 +4,8 @@
 \alias{fitstepwise.bestpath}
 \title{Fit lmer model using model selection}
 \usage{
-fitstepwise.bestpath(mcr.data, forward, crit = c(0.01, 0.05, seq(0.1, 0.8,
-  0.1)))
+fitstepwise.bestpath(mcr.data, forward, crit = c(0.01, 0.05, seq(0.1,
+  0.8, 0.1)))
 }
 \arguments{
 \item{mcr.data}{A dataframe formatted as described in \code{\link{mkDf}}.
@@ -71,4 +71,3 @@ fitstepwise.bestpath(mcr.data=x8, forward=FALSE, crit=.05)
 \code{\link{fitlmer}}, 
 \code{\link{fitstepwise}}, \code{\link{reassembleStepwiseFile}}
 }
-

@@ -5,8 +5,8 @@
 \title{Make a dataframe with simulated data given a set of population parameters}
 \usage{
 mkDf(nsubj = 24, nitem = 24, wsbi = FALSE,
-  mcr.params = randParams(genParamRanges(), 1)[1, ], missMeth = "random",
-  rigen = FALSE, verbose = FALSE)
+  mcr.params = randParams(genParamRanges(), 1)[1, ],
+  missMeth = "random", rigen = FALSE, verbose = FALSE)
 }
 \arguments{
 \item{nsubj}{number of subjects in the experiment}
@@ -83,4 +83,3 @@ print(x.df$subj_re) # by-subject random effects
 \seealso{
 \code{\link{genParamRanges}}, \code{\link{mkDf.facMixedAB}}
 }
-

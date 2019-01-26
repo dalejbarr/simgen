@@ -28,4 +28,3 @@ are used for generating datasets.
 \seealso{
 \code{\link{genParamRanges.facMixedAB}}, \code{\link{randParams}}, \code{\link{mkDf}}
 }
-

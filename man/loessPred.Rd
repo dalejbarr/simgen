@@ -4,8 +4,9 @@
 \alias{loessPred}
 \title{Fit a loess model to the p-value data for later use in generating heatmaps.}
 \usage{
-loessPred(pval, paramX, paramY, minx = 0.01, maxx = 2.99, miny = 0.01,
-  maxy = 2.99, svec = rep(TRUE, length(paramX)), span = 0.9)
+loessPred(pval, paramX, paramY, minx = 0.01, maxx = 2.99,
+  miny = 0.01, maxy = 2.99, svec = rep(TRUE, length(paramX)),
+  span = 0.9)
 }
 \arguments{
 \item{pval}{vector of p-values from simulated runs}
@@ -54,4 +55,3 @@ heatmap2(lpred, "t11", "w11", "F1+F2")
 \seealso{
 \code{\link{loess}}, \code{\link{heatmap2}}
 }
-

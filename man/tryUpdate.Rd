@@ -30,4 +30,3 @@ lrTest(mod1, mod2)
 \seealso{
 \code{\link{tryFit}}
 }
-

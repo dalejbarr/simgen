@@ -4,8 +4,8 @@
 \alias{heatmap2}
 \title{Create a heatmap from a given loess fit.}
 \usage{
-heatmap2(lofit, labelX, labelY, title, mxseq = seq(0.01, 2.99, length.out =
-  300), myseq = seq(0.01, 2.99, length.out = 300), powermap = FALSE)
+heatmap2(lofit, labelX, labelY, title, mxseq = seq(0.01, 2.99, length.out
+  = 300), myseq = seq(0.01, 2.99, length.out = 300), powermap = FALSE)
 }
 \arguments{
 \item{lofit}{fitted loess object}
@@ -44,4 +44,3 @@ heatmap2(lpred, "t11", "w11", "F1+F2")
 \seealso{
 \code{\link{loessPred}}
 }
-

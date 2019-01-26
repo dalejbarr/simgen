@@ -33,4 +33,3 @@ This function no longer works and will throw an error, as the \code{mcmcsamp} fu
 \seealso{
 \code{\link{fitlmer}}
 }
-

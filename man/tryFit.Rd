@@ -30,4 +30,3 @@ ff <- tryFit(Resp~Cond + (1+Cond|SubjID)+(1+Cond|ItemID), mkDf())
 \seealso{
 \code{\link{tryUpdate}}
 }
-

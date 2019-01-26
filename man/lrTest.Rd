@@ -28,4 +28,3 @@ lrTest(m1, m2)
 \seealso{
 \code{\link{tryFit}}
 }
-
